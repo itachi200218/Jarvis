@@ -1,115 +1,188 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
+import JarvisScene from "./3dModel/JarvisScene";
 
 const API_URL = "http://127.0.0.1:8000/command";
 
+const BASE_TYPING_SPEED = 28;
+const SPEECH_LEAD_DELAY = 320;
+
 function App() {
   const recognitionRef = useRef(null);
+  const typingIntervalRef = useRef(null);
 
   const [listening, setListening] = useState(false);
+  const [status, setStatus] = useState("Awaiting command");
   const [lastCommand, setLastCommand] = useState("");
   const [textCommand, setTextCommand] = useState("");
   const [jarvisReply, setJarvisReply] = useState("");
 
+  // =========================
+  // SPEECH RECOGNITION
+  // =========================
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert("Speech Recognition not supported in this browser");
+      alert("Speech Recognition not supported");
       return;
     }
 
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = false;
 
-    recognition.onresult = async (event) => {
-      const text =
-        event.results[event.results.length - 1][0].transcript.trim();
-
-      console.log("🎙️ You said:", text);
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript.trim();
+      recognition.stop();
+      setListening(false);
+      setStatus("Processing…");
       setLastCommand(text);
-      await sendCommand(text);
+      sendCommand(text);
     };
 
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      setStatus("Awaiting command");
+    };
 
     recognitionRef.current = recognition;
   }, []);
 
-  const sendCommand = async (command) => {
-    if (!command) return;
+  // =========================
+  // TYPING EFFECT
+  // =========================
+  const typeJarvisReply = (text) => {
+    clearInterval(typingIntervalRef.current);
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command }),
-    });
+    const cleanText = text.trim();
+    let index = 0;
+    setJarvisReply("");
 
-    const data = await res.json();
+    const typingSpeed = Math.min(
+      80,
+      BASE_TYPING_SPEED + cleanText.length * 0.9
+    );
 
-    // 👇 MUST MATCH BACKEND RESPONSE KEY
-    setJarvisReply(data.response || data.reply || "");
+    setTimeout(() => {
+      typingIntervalRef.current = setInterval(() => {
+        index++;
+        setJarvisReply(cleanText.slice(0, index));
+        if (index >= cleanText.length) {
+          clearInterval(typingIntervalRef.current);
+        }
+      }, typingSpeed);
+    }, SPEECH_LEAD_DELAY);
   };
 
+  // =========================
+  // BACKEND CALL
+  // =========================
+  const sendCommand = async (command) => {
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command }),
+      });
+
+      const data = await res.json();
+      setStatus("Responding…");
+
+      typeJarvisReply(
+        typeof data.reply === "string" ? data.reply : "Command executed."
+      );
+
+      setTimeout(() => setStatus("Awaiting command"), 800);
+    } catch (err) {
+      console.error(err);
+      typeJarvisReply("Something went wrong.");
+      setStatus("Awaiting command");
+    }
+  };
+
+  // =========================
+  // MIC TOGGLE
+  // =========================
   const toggleListening = () => {
     if (!listening) {
       recognitionRef.current.start();
       setListening(true);
+      setStatus("Listening…");
     } else {
       recognitionRef.current.stop();
       setListening(false);
+      setStatus("Awaiting command");
     }
   };
 
+  // =========================
+  // TEXT COMMAND
+  // =========================
   const handleTextSubmit = async () => {
     if (!textCommand.trim()) return;
     setLastCommand(textCommand);
+    setStatus("Processing…");
     await sendCommand(textCommand);
     setTextCommand("");
   };
 
+  // =========================
+  // UI
+  // =========================
   return (
-    <div className="app">
-      {/* MIC ORB */}
-      <div
-        className={`mic-orb ${listening ? "listening" : ""}`}
-        onClick={toggleListening}
-      >
-        🎙️
+    <div className="hud">
+      <div className="three-bg">
+        <JarvisScene />
       </div>
 
-      {/* STATUS */}
-      <p className="status">
-        {listening ? "Listening…" : "Tap the mic or type a command"}
-      </p>
-
-      {/* USER COMMAND */}
-      {lastCommand && (
-        <div className="command-box user">
-          {lastCommand}
+      <div className="hud-frame">
+        <div className="hud-header">
+          <div className="hud-title">J.A.R.V.I.S</div>
+          <div className="hud-subtitle">
+            Just A Rather Very Intelligent System
+          </div>
         </div>
-      )}
 
-      {/* JARVIS REPLY (SIRI STYLE) */}
-      {jarvisReply && (
-        <div className="command-box jarvis">
-          {jarvisReply}
+        <div
+          className={`mic-orb 
+            ${listening ? "listening" : ""} 
+            ${status === "Processing…" ? "processing" : ""} 
+            ${status === "Responding…" ? "speaking" : ""}
+          `}
+          onClick={toggleListening}
+        >
+          🎙️
         </div>
-      )}
 
-      {/* OPTIONAL TEXT INPUT */}
-      <div className="text-input">
-        <input
-          type="text"
-          placeholder="Type a command (optional)"
-          value={textCommand}
-          onChange={(e) => setTextCommand(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
-        />
-        <button onClick={handleTextSubmit}>Send</button>
+        <div className="status">{status}</div>
+
+        {lastCommand && (
+          <div className="command-box user">
+            <span className="label">USER</span>
+            <span className="text">{lastCommand}</span>
+          </div>
+        )}
+
+        {jarvisReply && (
+          <div className="command-box jarvis">
+            <span className="label">JARVIS</span>
+            <span className="text">{jarvisReply}</span>
+          </div>
+        )}
+
+        <div className="text-input">
+          <input
+            type="text"
+            placeholder="Type command…"
+            value={textCommand}
+            onChange={(e) => setTextCommand(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
+          />
+          <button onClick={handleTextSubmit}>EXECUTE</button>
+        </div>
       </div>
     </div>
   );
