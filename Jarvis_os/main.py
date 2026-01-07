@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from jarvis_core import handle_command, speak_async
+from auth.router import router as auth_router   # ✅ AUTH ROUTER
 
 # ==============================
 # FASTAPI APP
@@ -24,6 +25,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ==============================
+# AUTH ROUTES
+# ==============================
+app.include_router(auth_router)
 
 # ==============================
 # STARTUP GREETING (API MODE)

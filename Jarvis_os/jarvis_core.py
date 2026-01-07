@@ -12,6 +12,11 @@ from datetime import datetime
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from rapidfuzz import fuzz
+from ai_fallback import get_ai_response
+from weather_service import get_weather
+from time_service import get_time_from_timezone_db
+from maps_service import get_distance
+from location_service import get_current_location
 
 # ==============================
 # LOAD ENV
@@ -167,36 +172,195 @@ def handle_command(command: str):
     intent, confidence = find_intent(raw)
     print(f"🧠 Intent: {intent}, Confidence: {confidence}%")
 
+    # ==============================
+    # SYSTEM / DB INTENTS
+    # ==============================
     if intent == "open_chrome":
-        open_chrome(); response = "Opening Google Chrome."
+        open_chrome()
+        response = "Opening Google Chrome."
+
     elif intent == "open_vscode":
-        open_vscode(); response = "Opening Visual Studio Code."
+        open_vscode()
+        response = "Opening Visual Studio Code."
+
     elif intent == "shutdown":
-        shutdown_system(); response = "Shutting down the system."
+        shutdown_system()
+        response = "Shutting down the system."
+
     elif intent == "restart":
-        restart_system(); response = "Restarting the system."
+        restart_system()
+        response = "Restarting the system."
+
     elif intent == "volume_up":
-        increase_volume(); response = "Increasing volume."
+        increase_volume()
+        response = "Increasing volume."
+
     elif intent == "volume_down":
-        decrease_volume(); response = "Decreasing volume."
+        decrease_volume()
+        response = "Decreasing volume."
+
     elif intent == "mute_volume":
-        mute_volume(); response = "Volume muted."
+        mute_volume()
+        response = "Volume muted."
+
     elif intent == "screenshot":
-        take_screenshot(); response = "Screenshot saved successfully."
-    elif intent == "cpu_usage": response = cpu_usage()
-    elif intent == "ram_usage": response = ram_usage()
-    elif intent == "gpu_usage": response = gpu_usage()
-    elif intent == "battery_status": response = battery_status()
-    elif intent == "disk_space": response = disk_space()
-    elif intent == "network_status": response = network_status()
+        take_screenshot()
+        response = "Screenshot saved successfully."
+
+    elif intent == "cpu_usage":
+        response = cpu_usage()
+
+    elif intent == "ram_usage":
+        response = ram_usage()
+
+    elif intent == "gpu_usage":
+        response = gpu_usage()
+
+    elif intent == "battery_status":
+        response = battery_status()
+
+    elif intent == "disk_space":
+        response = disk_space()
+
+    elif intent == "network_status":
+        response = network_status()
+
     elif intent == "open_explorer":
-        open_explorer(); response = "Opening File Explorer."
+        open_explorer()
+        response = "Opening File Explorer."
+
     elif intent == "open_settings":
-        open_settings(); response = "Opening Settings."
-    elif intent == "current_time": response = current_time()
-    elif intent == "current_date": response = current_date()
+        open_settings()
+        response = "Opening Settings."
+
+    elif intent == "current_time":
+        response = current_time()
+
+    elif intent == "current_date":
+        response = current_date()
+
+    # ==============================
+    # WEATHER
+    # ==============================
+    elif "weather" in raw:
+        city = raw.replace("weather", "").replace("in", "").strip()
+        if not city:
+            city = "your location"
+
+        response = get_weather(city)
+        intent = "weather"
+        confidence = 100
+
+    # ==============================
+    # TIME BY LOCATION
+    # ==============================
+    elif "time in" in raw:
+        location = raw.replace("time in", "").strip()
+        response = get_time_from_timezone_db(location)
+        intent = "time"
+        confidence = 100
+
+    # ==============================
+    # MAPS / DISTANCE
+    # ==============================
+    elif "distance" in raw:
+        cleaned = raw.replace("distance", "").strip()
+
+        if " to " in cleaned:
+            source, destination = cleaned.split(" to ", 1)
+            source = source.strip()
+            destination = destination.strip()
+
+            if source in {"my location", "current location", "my place"}:
+                response = get_distance(None, destination)
+            else:
+                response = get_distance(source, destination)
+        else:
+            cleaned = cleaned.replace("from", "").replace("to", "")
+            cleaned = cleaned.replace("my location", "").strip()
+            response = get_distance(None, cleaned)
+
+        intent = "maps"
+        confidence = 100
+
+    # ==============================
+    # 👑 CREATOR (OWNER MODE)
+    # ==============================
+    elif (
+        "who created you" in raw
+        or "who made you" in raw
+        or "who invented you" in raw
+        or "who developed you" in raw
+        or "who built you" in raw
+        or "who is your creator" in raw 
+        or "who is your owner" in raw
+        or "who is your developer" in raw
+        or "who is your builder" in raw
+        or "who made you" in raw
+        or "your creator" in raw
+        or "who created you" in raw
+    ):
+        response = "I was created by A Chetan. He is my creator."
+        intent = "creator"
+        confidence = 100
+    elif (
+        "who is chetan" in raw
+        or "tell me about chetan" in raw
+        or "who is a chetan" in raw
+        or "about chetan" in raw
+        or "who is your creator chetan" in raw
+    ):
+        response = (
+            "A Chetan is a full stack developer with expertise across many "
+            "full stack ecosystem applications. He has experience working with "
+            "modern web technologies and frameworks, including the AllureIQ framework. "
+            "He is currently working as an SDET at Cognizant."
+            "He is also the creator of me, Jarvis."
+        )
+        speak_async(response)
+        return {
+            "reply": response,
+            "intent": "about_creator",
+            "confidence": 100
+        }
+    elif (
+        "say some of his projects" in raw
+        or "what projects did he build" in raw
+        or "tell me about his projects" in raw
+        or "what are chetan projects" in raw
+        or "his projects" in raw
+        or"what are his projetcs" in raw
+        or "projects of chetan" in raw
+    ):
+        response = (
+            "A Chetan has built multiple production-grade full stack and AI-driven systems. "
+            "One of his flagship projects is Jarvis, an intelligent voice-based assistant built using "
+            "React with Vite for the frontend, and FastAPI with Python for the backend. "
+            "Jarvis integrates system commands, weather, time, location, maps services, "
+            "and an AI fallback powered by Gemini. "
+            "His other major projects include Food Finder, an AI-powered recipe platform built with "
+            "Flask and Gemini AI, featuring intelligent search and real-time suggestions. "
+            "He also developed a Spring Boot based Admin Panel with AI-driven database commands. "
+            "Additionally, he built a full stack Social Media application and a Student Job Tracker "
+            "using the MERN stack. "
+            "All these projects were tested using his own AI automation framework called AllureIQ, "
+            "which delivers faster debugging and production-grade test intelligence."
+        )
+
+        speak_async(response)
+        return {
+            "reply": response,
+            "intent": "projects_of_creator",
+            "confidence": 100
+        }
+
+    # ==============================
+    # AI FALLBACK
+    # ==============================
     else:
-        response = "Sorry, I did not understand that command."
+        response = get_ai_response(command)
+        intent = "ai_fallback"
+        confidence = 0
 
     speak_async(response)
     return {"reply": response, "intent": intent, "confidence": confidence}

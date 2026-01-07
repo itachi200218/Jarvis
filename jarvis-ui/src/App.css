@@ -1,6 +1,10 @@
 /* =========================
    GLOBAL RESET
 ========================= */
+:root {
+  --grid-hue: 190;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -11,32 +15,153 @@ body {
   color: white;
   overflow: hidden;
 }
+/* =========================
+   FULLSCREEN HOLOGRAPHIC GRID (JARVIS)
+========================= */
+.hud-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-color: #000;
+
+  isolation: isolate; /* 🔥 THIS IS THE KEY */
+}
+
+/* =========================
+   MULTI-PATTERN GRID SCAN
+========================= */
+.hud-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      rgba(0, 255, 255, 0.8) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(0, 255, 255, 0.8) 1px,
+      transparent 1px
+    );
+
+  background-size: 64px 64px;
+
+  /* default mask */
+  mask-image:
+    linear-gradient(to bottom, rgba(255,255,255,.2), white, rgba(255,255,255,.2)),
+    linear-gradient(to left, rgba(255,255,255,.2), white, rgba(255,255,255,.2));
+
+  mask-repeat: no-repeat;
+  mask-size: 100% 180%, 180% 100%;
+
+  filter: blur(1px);
+  opacity: 0.85;
+
+ animation:
+  gridPatternCycle 50s linear infinite,
+  gridRGBColors 20s linear infinite;
+
+}
+@keyframes gridRGBColors {
+  /* CYAN (original) */
+  0% {
+    filter: blur(1px) hue-rotate(0deg) saturate(1.2);
+  }
+
+  /* BLUE */
+  20% {
+    filter: blur(1px) hue-rotate(200deg) saturate(1.4);
+  }
+
+  /* 🔥 PURE RED (BOOSTED) */
+  40% {
+    filter: blur(1px) hue-rotate(330deg) saturate(2.5) contrast(1.2);
+  }
+
+  /* ORANGE */
+  60% {
+    filter: blur(1px) hue-rotate(25deg) saturate(2);
+  }
+
+  /* PURPLE */
+  80% {
+    filter: blur(1px) hue-rotate(270deg) saturate(1.6);
+  }
+
+  /* BACK TO CYAN */
+  100% {
+    filter: blur(1px) hue-rotate(360deg) saturate(1.2);
+  }
+}
+
+/* =========================
+   DIM BASE GRID (NEVER DISAPPEARS)
+========================= */
+.hud-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      rgba(0, 180, 255, 0.06) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(0, 180, 255, 0.06) 1px,
+      transparent 1px
+    );
+
+  background-size: 64px 64px;
+}
+/* =========================
+   BOX AMBIENT AURA (SUBTLE)
+========================= */
+.hud-grid .box-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 200, 255, 0.06) 0px,
+      rgba(0, 200, 255, 0.06) 1px,
+      transparent 1px,
+      transparent 64px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 200, 255, 0.06) 0px,
+      rgba(0, 200, 255, 0.06) 1px,
+      transparent 1px,
+      transparent 64px
+    );
+
+  filter: blur(0.6px);
+  opacity: 0.35;
+
+  animation: boxAuraBreath 6s ease-in-out infinite;
+}
+@keyframes boxAuraBreath {
+  0% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0.25;
+  }
+}
+
 
 /* =========================
    ROBOTIC BACKGROUND GRID
 ========================= */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(96, 165, 250, 0.05) 0px,
-      rgba(96, 165, 250, 0.05) 1px,
-      transparent 1px,
-      transparent 38px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(96, 165, 250, 0.05) 0px,
-      rgba(96, 165, 250, 0.05) 1px,
-      transparent 1px,
-      transparent 38px
-    ),
-    radial-gradient(circle at center, #020617, #000);
-  z-index: -5;
-}
 
 /* =========================
    HUD WRAPPER
@@ -53,27 +178,53 @@ body::before {
 /* =========================
    SYSTEM AURA (ENERGY FIELD)
 ========================= */
+/* =========================
+   ADVANCED SYSTEM AURA (AI CORE)
+========================= */
 .hud::before {
   content: "";
   position: absolute;
-  width: 560px;
-  height: 560px;
+  width: 620px;
+  height: 620px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(96, 165, 250, 0.25),
-    rgba(37, 99, 235, 0.15),
-    transparent 70%
-  );
-  filter: blur(70px);
-  animation: auraPulse 4s ease-in-out infinite;
+
+  background:
+    radial-gradient(
+      circle at 30% 30%,
+      rgba(0, 255, 255, 0.25),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 70% 70%,
+      rgba(147, 197, 253, 0.25),
+      transparent 60%
+    ),
+    radial-gradient(
+      circle,
+      rgba(37, 99, 235, 0.25),
+      transparent 70%
+    );
+
+  filter: blur(80px);
+  opacity: 0.85;
+
+  animation:
+    auraPulse 4s ease-in-out infinite,
+    auraDrift 14s linear infinite;
+
   z-index: 0;
 }
 
 @keyframes auraPulse {
-  0% { transform: scale(0.95); opacity: 0.6; }
-  50% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.6; }
+  0%   { transform: scale(0.92); opacity: 0.55; }
+  50%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(0.92); opacity: 0.55; }
+}
+
+@keyframes auraDrift {
+  0%   { filter: blur(80px) hue-rotate(0deg); }
+  50%  { filter: blur(90px) hue-rotate(80deg); }
+  100% { filter: blur(80px) hue-rotate(0deg); }
 }
 
 /* =========================
@@ -143,6 +294,36 @@ body::before {
   box-shadow: 0 0 30px rgba(37, 99, 235, 0.6);
   transition: transform 0.25s ease;
 }
+/* AI RINGS */
+.mic-orb::before,
+.mic-orb::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  opacity: 0.6;
+}
+
+.mic-orb::before {
+  animation: ringRotate 6s linear infinite;
+}
+
+.mic-orb::after {
+  inset: -28px;
+  border-color: rgba(147, 197, 253, 0.35);
+  animation: ringRotateReverse 10s linear infinite;
+}
+
+@keyframes ringRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes ringRotateReverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
 
 /* Idle breathing */
 .mic-orb:not(.listening):not(.speaking) {
@@ -169,10 +350,17 @@ body::before {
 /* Speaking (voice reactive) */
 .mic-orb.speaking {
   box-shadow:
-    0 0 45px rgba(96, 165, 250, 0.9),
-    0 0 95px rgba(147, 197, 253, 1),
-    0 0 160px rgba(191, 219, 254, 1);
-  transform: scale(1.1);
+    0 0 40px rgba(0, 255, 255, 0.9),
+    0 0 90px rgba(147, 197, 253, 1),
+    0 0 160px rgba(96, 165, 250, 1);
+
+  animation: voiceSurge 0.9s ease-in-out infinite;
+}
+
+@keyframes voiceSurge {
+  0%   { transform: scale(1.05); }
+  50%  { transform: scale(1.18); }
+  100% { transform: scale(1.05); }
 }
 
 /* =========================
@@ -188,39 +376,140 @@ body::before {
 /* =========================
    COMMAND CARDS
 ========================= */
-.command-box {
-  margin-top: 22px;
-  padding: 14px 22px;
-  max-width: 420px;
-  width: 90%;
+.command-box.jarvis {
+  position: relative;
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(37, 99, 235, 0.95),
+      rgba(14, 165, 233, 0.9)
+    );
+
   border-radius: 16px;
+  border: 1px solid rgba(147, 197, 253, 0.45);
+
+  box-shadow:
+    0 0 18px rgba(96, 165, 250, 0.45),
+    0 0 45px rgba(96, 165, 250, 0.25),
+    inset 0 0 25px rgba(255, 255, 255, 0.12);
+
+  animation:
+    jarvisBreath 3.2s ease-in-out infinite,
+    fadeUp 0.4s ease;
+}
+.command-box.jarvis::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,0.06) 0px,
+      rgba(255,255,255,0.06) 1px,
+      transparent 1px,
+      transparent 6px
+    );
+
+  opacity: 0.25;
+  pointer-events: none;
+}
+.command-box.jarvis::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+
+  background:
+    linear-gradient(
+      120deg,
+      transparent 40%,
+      rgba(255,255,255,0.35),
+      transparent 60%
+    );
+
+  animation: jarvisScan 3.5s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes dataScan {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+.command-box {
+  width: 100%;
+  max-width: 420px;
+
+  padding: 18px 22px;      /* MORE SPACE */
+  border-radius: 16px;
+
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-align: center;
+  flex-direction: column;  /* STACK LABEL + TEXT */
+  align-items: flex-start;
+
   animation: fadeUp 0.35s ease;
 }
 
 .command-box .label {
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 2px;
-  opacity: 0.75;
+  opacity: 0.65;
+
+  display: block;          /* 🔥 IMPORTANT */
+  margin-bottom: 6px;      /* SPACE BELOW LABEL */
 }
 
+
 .command-box .text {
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 14.5px;
+  line-height: 1.7;        /* READABLE */
+  margin-top: 2px;
+
+  word-break: break-word;
 }
 
 .command-box.user {
-  background: rgba(2, 6, 23, 0.8);
-  border: 1px solid rgba(96, 165, 250, 0.25);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(2, 6, 23, 0.95),
+      rgba(15, 23, 42, 0.9)
+    );
+
+  border-radius: 14px;
+  border: 1px solid rgba(100, 116, 139, 0.45);
+
+  box-shadow:
+    inset 0 0 12px rgba(0,0,0,0.6),
+    0 0 12px rgba(0,0,0,0.45);
+
+  font-family: "Courier New", monospace;
 }
 
 .command-box.jarvis {
   background: linear-gradient(135deg, #2563eb, #60a5fa);
   box-shadow: 0 12px 45px rgba(96, 165, 250, 0.65);
   animation: fadeUp 0.4s ease, speakGlow 1.3s infinite alternate;
+}
+@keyframes jarvisBreath {
+  0% {
+    box-shadow:
+      0 0 16px rgba(96,165,250,0.4),
+      inset 0 0 18px rgba(255,255,255,0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 32px rgba(147,197,253,0.8),
+      0 0 60px rgba(96,165,250,0.45),
+      inset 0 0 28px rgba(255,255,255,0.2);
+  }
+  100% {
+    box-shadow:
+      0 0 16px rgba(96,165,250,0.4),
+      inset 0 0 18px rgba(255,255,255,0.12);
+  }
 }
 
 @keyframes speakGlow {
@@ -231,28 +520,124 @@ body::before {
 /* =========================
    INPUT
 ========================= */
+/* =========================
+   JARVIS COMMAND CONSOLE
+========================= */
 .text-input {
-  margin-top: 30px;
+  margin-top: 32px;
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 10px;
 }
 
+/* =========================
+   TERMINAL INPUT
+========================= */
 .text-input input {
   width: 260px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: none;
+  padding: 12px 14px;
+
+  background: rgba(2, 6, 23, 0.85);
+  color: #7dd3fc;
+
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.8px;
+
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 255, 0.35);
   outline: none;
+
+  box-shadow:
+    inset 0 0 12px rgba(0, 255, 255, 0.15),
+    0 0 10px rgba(0, 255, 255, 0.25);
+
+  transition: all 0.25s ease;
 }
 
+.text-input input::placeholder {
+  color: rgba(125, 211, 252, 0.45);
+  letter-spacing: 1px;
+}
+
+/* ACTIVE / FOCUS STATE */
+.text-input input:focus {
+  border-color: rgba(147, 197, 253, 0.9);
+  box-shadow:
+    inset 0 0 18px rgba(0, 255, 255, 0.35),
+    0 0 22px rgba(147, 197, 253, 0.85);
+}
+
+/* =========================
+   EXECUTE BUTTON
+========================= */
 .text-input button {
-  padding: 10px 18px;
-  border-radius: 8px;
-  border: none;
+  padding: 12px 20px;
+
+  font-family: monospace;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+
+  color: #e0f2fe;
+  background:
+    linear-gradient(
+      135deg,
+      #0ea5e9,
+      #2563eb
+    );
+
+  border-radius: 10px;
+  border: 1px solid rgba(147, 197, 253, 0.6);
+
   cursor: pointer;
-  background: #2563eb;
-  color: white;
+
+  box-shadow:
+    0 0 12px rgba(0, 255, 255, 0.45),
+    inset 0 0 10px rgba(255,255,255,0.15);
+
+  position: relative;
+  overflow: hidden;
+
+  transition: all 0.25s ease;
+}
+
+/* SCAN LINE ON BUTTON */
+.text-input button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      120deg,
+      transparent,
+      rgba(255,255,255,0.35),
+      transparent
+    );
+  transform: translateX(-100%);
+}
+
+.text-input button:hover::after {
+  animation: buttonScan 0.8s linear;
+}
+
+@keyframes buttonScan {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* HOVER */
+.text-input button:hover {
+  box-shadow:
+    0 0 25px rgba(147, 197, 253, 0.95),
+    inset 0 0 14px rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+}
+
+/* PRESS */
+.text-input button:active {
+  transform: scale(0.96);
+  box-shadow:
+    inset 0 0 18px rgba(0,0,0,0.4);
 }
 
 /* =========================
@@ -340,4 +725,220 @@ body::before {
 
 .hud.speaking::before {
   background: radial-gradient(circle, #60a5fa, transparent 70%);
+}
+/* =========================
+   SCROLLABLE JARVIS REPLY
+========================= */
+
+.command-box .text {
+  max-height: 120px;       /* change to 140px if you want taller */
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* Chrome / Edge scrollbar */
+.command-box .text::-webkit-scrollbar {
+  width: 5px;
+}
+
+.command-box .text::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+}
+
+.command-box .text::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Firefox */
+.command-box .text {
+  scrollbar-width: thin;
+}
+/* ===== HUD LOGIN (IRON MAN STYLE) ===== */
+.hud-login {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 12px;
+  border-radius: 20px;
+
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+
+  color: #00f0ff;
+  border: 1px solid rgba(0, 240, 255, 0.6);
+  background: rgba(0, 0, 0, 0.4);
+
+  cursor: pointer;
+  user-select: none;
+
+  box-shadow:
+    0 0 8px rgba(0, 240, 255, 0.4),
+    inset 0 0 6px rgba(0, 240, 255, 0.2);
+
+  transition: all 0.25s ease;
+}
+
+.hud-login:hover {
+  background: rgba(0, 240, 255, 0.15);
+  box-shadow:
+    0 0 14px rgba(0, 240, 255, 0.8),
+    inset 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
+.hud-login-icon {
+  font-size: 13px;
+}
+
+.hud-login-text {
+  font-family: monospace;
+}
+
+
+/* @keyframes gridScan {
+  0% {
+    mask-position: 0% -100%, 100% 0%;
+  }
+  50% {
+    mask-position: 0% 100%, 0% 0%;
+  }
+  100% {
+    mask-position: 0% -100%, -100% 0%;
+  }
+} */
+
+@keyframes gridScanAdvanced {
+  0% {
+    mask-position:
+      0% -110%,
+      110% 0%;
+    opacity: 0.5;
+  }
+
+  20% {
+    opacity: 0.9;
+  }
+
+  50% {
+    mask-position:
+      0% 110%,
+      0% 0%;
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 0.85;
+  }
+
+  100% {
+    mask-position:
+      0% -110%,
+      -110% 0%;
+    opacity: 0.6;
+  }
+}
+@keyframes gridPatternCycle {
+
+  /* 1️⃣ LEFT → RIGHT */
+  0% {
+    mask-size: 0% 100%;
+    mask-position: left top;
+    opacity: 0.4;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  20% {
+    mask-size: 100% 100%;
+  }
+
+  /* PAUSE */
+  24% {
+    opacity: 0.8;
+  }
+
+  /* RESET */
+  25% {
+    mask-size: 0% 100%;
+    opacity: 0.4;
+  }
+
+  /* 2️⃣ RIGHT → LEFT */
+  30% {
+    mask-size: 100% 100%;
+    mask-position: right top;
+    opacity: 0.9;
+  }
+
+  /* PAUSE */
+  34% {
+    opacity: 0.8;
+  }
+
+  /* RESET */
+  35% {
+    mask-size: 0% 100%;
+    opacity: 0.4;
+  }
+
+  /* 3️⃣ TOP → BOTTOM */
+  50% {
+    mask-size: 100% 100%;
+    mask-position: left top;
+    opacity: 0.9;
+  }
+
+  /* RESET */
+  55% {
+    mask-size: 100% 0%;
+    opacity: 0.4;
+  }
+
+  /* 4️⃣ BOTTOM → TOP */
+  70% {
+    mask-size: 100% 100%;
+    mask-position: left bottom;
+    opacity: 0.9;
+  }
+
+  /* PAUSE */
+  74% {
+    opacity: 0.8;
+  }
+
+  /* IDLE */
+  100% {
+    opacity: 0.6;
+  }
+}
+@keyframes boxReactPulse {
+  0% {
+    opacity: 0.05;
+    filter: brightness(0.9);
+  }
+
+  25% {
+    opacity: 0.15;
+    filter: brightness(1.05);
+  }
+
+  50% {
+    opacity: 0.25;
+    filter: brightness(1.1);
+  }
+
+  75% {
+    opacity: 0.15;
+    filter: brightness(1.05);
+  }
+
+  100% {
+    opacity: 0.05;
+    filter: brightness(0.9);
+  }
 }
