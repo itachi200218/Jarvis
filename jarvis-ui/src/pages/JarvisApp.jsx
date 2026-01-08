@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import "../App.css";
 import JarvisScene from "../3dModel/JarvisScene";
+import { useAuth } from "../context/authcontext_temp.jsx";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = "http://127.0.0.1:8000/command";
 
-// 🔽 RENAMED COMPONENT (IMPORTANT)
 function JarvisApp({ openLogin }) {
   const recognitionRef = useRef(null);
   const typingIntervalRef = useRef(null);
@@ -15,6 +16,9 @@ function JarvisApp({ openLogin }) {
   const [lastCommand, setLastCommand] = useState("");
   const [textCommand, setTextCommand] = useState("");
   const [jarvisReply, setJarvisReply] = useState("");
+
+  const { user, loading } = useAuth();
+  const navigate = useNavigate(); // ✅ REQUIRED
 
   // =========================
   // SPEECH RECOGNITION
@@ -51,7 +55,7 @@ function JarvisApp({ openLogin }) {
   }, []);
 
   // =========================
-  // TYPING EFFECT (UNCHANGED)
+  // TYPING EFFECT
   // =========================
   const typeJarvisReply = (text) => {
     clearInterval(typingIntervalRef.current);
@@ -103,8 +107,6 @@ function JarvisApp({ openLogin }) {
       typeJarvisReply(
         typeof data.reply === "string" ? data.reply : "Command executed."
       );
-
-      setTimeout(() => setStatus("Awaiting command"), 800);
     } catch (err) {
       console.error(err);
       typeJarvisReply("Something went wrong.");
@@ -138,88 +140,112 @@ function JarvisApp({ openLogin }) {
     setTextCommand("");
   };
 
+  if (loading) {
+    return <div className="status">Initializing Jarvis…</div>;
+  }
+
   // =========================
   // UI
   // =========================
-return (
-  <div className="hud">
+  return (
+    <div className="hud">
 
-    {/* 🌐 HOLOGRAPHIC GRID LAYER */}
- <div className="hud-grid">
-  <div className="box-aura" />
-</div>
-
-
-    {/* 🎥 3D BACKGROUND */}
-    <div className="three-bg">
-      <JarvisScene />
-    </div>
-
-    {/* 🔐 HUD LOGIN CONTROL (TOP RIGHT) */}
-    <div className="hud-login" onClick={openLogin}>
-      <span className="hud-login-icon">🔐</span>
-      <span className="hud-login-text">SECURE MODE</span>
-    </div>
-
-    {/* 🧠 MAIN HUD FRAME */}
-    <div className="hud-frame">
-
-      {/* HEADER */}
-      <div className="hud-header">
-        <div className="hud-title">J.A.R.V.I.S</div>
-        <div className="hud-subtitle">
-          Just A Rather Very Intelligent System
-        </div>
+      <div className="hud-grid">
+        <div className="box-aura" />
       </div>
 
-      {/* 🎙️ MIC ORB */}
-      <div
-        className={`mic-orb 
-          ${listening ? "listening" : ""} 
-          ${status === "Processing…" ? "processing" : ""} 
-          ${status === "Responding…" ? "speaking" : ""}
-        `}
-        onClick={toggleListening}
-      >
-        🎙️
+      <div className="three-bg">
+        <JarvisScene />
       </div>
 
-      {/* 📡 STATUS */}
-      <div className="status">{status}</div>
-
-      {/* 👤 USER COMMAND */}
-      {lastCommand && (
-        <div className="command-box user">
-          <span className="label">USER</span>
-          <span className="text">{lastCommand}</span>
-        </div>
-      )}
-
-      {/* 🤖 JARVIS REPLY */}
-      {jarvisReply && (
-        <div className="command-box jarvis">
-          <span className="label">JARVIS</span>
-          <span className="text" ref={jarvisTextRef}>
-            {jarvisReply}
-          </span>
-        </div>
-      )}
-
-      {/* ⌨️ TEXT INPUT */}
-      <div className="text-input">
-        <input
-          type="text"
-          placeholder="Type command…"
-          value={textCommand}
-          onChange={(e) => setTextCommand(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
-        />
-        <button onClick={handleTextSubmit}>EXECUTE</button>
+      {/* 🔐 LOGIN → /auth */}
+      <div className="hud-login" onClick={() => navigate("/auth")}>
+        <span className="hud-login-icon">🔐</span>
+        <span className="hud-login-text">SECURE MODE</span>
       </div>
 
+      <div className="hud-frame">
+
+        <div className="hud-header">
+          <div className="hud-title">J.A.R.V.I.S</div>
+
+          <div
+            className="hud-subtitle"
+            style={{
+              display: "flex",
+              gap: "10px",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+           {user ? (
+  <div className="hud-user">
+    <div className="hud-user-info">
+      Welcome <span className="hud-username">{user.name}</span>
+      <span className="hud-role">ROLE: {user.role.toUpperCase()}</span>
     </div>
+
+    <div className="hud-divider" />
+
+    <button
+      className="hud-profile-btn"
+      onClick={() => navigate("/profile")}
+    >
+      PROFILE
+    </button>
   </div>
+) : (
+  <span className="hud-subtitle">
+    Just A Rather Very Intelligent System
+  </span>
 )}
 
+          </div>
+        </div>
+
+        <div
+          className={`mic-orb 
+            ${listening ? "listening" : ""} 
+            ${status === "Processing…" ? "processing" : ""} 
+            ${status === "Responding…" ? "speaking" : ""}
+          `}
+          onClick={toggleListening}
+        >
+          🎙️
+        </div>
+
+        <div className="status">{status}</div>
+
+        {lastCommand && (
+          <div className="command-box user">
+            <span className="label">USER</span>
+            <span className="text">{lastCommand}</span>
+          </div>
+        )}
+
+        {jarvisReply && (
+          <div className="command-box jarvis">
+            <span className="label">JARVIS</span>
+            <span className="text" ref={jarvisTextRef}>
+              {jarvisReply}
+            </span>
+          </div>
+        )}
+
+        <div className="text-input">
+          <input
+            type="text"
+            placeholder="Type command…"
+            value={textCommand}
+            onChange={(e) => setTextCommand(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
+          />
+          <button onClick={handleTextSubmit}>EXECUTE</button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
 
 export default JarvisApp;

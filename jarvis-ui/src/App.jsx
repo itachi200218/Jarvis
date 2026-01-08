@@ -1,18 +1,15 @@
-import { useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import JarvisApp from "./pages/JarvisApp";
 import Login from "./pages/Login";
+import Profile from "./pages/profile";
 
 function App() {
-  const [showLogin, setShowLogin] = useState(false);
-
   return (
-    <>
-      {showLogin ? (
-        <Login onClose={() => setShowLogin(false)} />
-      ) : (
-        <JarvisApp openLogin={() => setShowLogin(true)} />
-      )}
-    </>
+    <Routes>
+      <Route path="/" element={<JarvisApp />} />
+      <Route path="/auth" element={<Login />} />
+      <Route path="/profile" element={<Profile />} />
+    </Routes>
   );
 }
 

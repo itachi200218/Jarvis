@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import "./Login.css";
 import { loginUser, registerUser } from "../api/authApi";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const eyesRef = useRef(null);
+  const navigate = useNavigate();
 
   const [focus, setFocus] = useState("none");
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState("Awaiting credentials");
-  const [mode, setMode] = useState("login"); // login | register
+  const [mode, setMode] = useState("login");
 
   // 🔐 form states
   const [name, setName] = useState("");
@@ -33,7 +35,6 @@ export default function Login() {
         const moveY = Math.sin(angle) * 6;
 
         eye.style.transform = `translate(${moveX}px, ${moveY}px)`;
-        eye.style.transition = "transform 0.08s linear";
       });
     };
 
@@ -64,20 +65,27 @@ export default function Login() {
   }, [password, confirmPassword, mode]);
 
   // ============================
-  // 🔐 ACTION HANDLER
+  // 🔐 AUTH HANDLER (FIXED)
   // ============================
   const handleAuth = async () => {
     try {
       if (mode === "login") {
         setStatus("Authenticating...");
+
         const res = await loginUser({ email, password });
 
-        // 🔑 save token
-        localStorage.setItem("jarvis_token", res.access_token);
+        // ✅ PER TAB SESSION STORAGE (IMPORTANT)
+        sessionStorage.setItem("jarvis_token", res.access_token);
 
         setStatus("Authentication successful ✔");
+
+        // 🔁 AUTO REDIRECT
+        setTimeout(() => {
+          navigate("/");
+        }, 700);
       } else {
         setStatus("Registering user...");
+
         await registerUser({
           name,
           email,
@@ -91,7 +99,7 @@ export default function Login() {
     } catch (err) {
       console.error(err);
       setStatus("Access denied ❌");
-      alert(err.message);
+      alert(err.message || "Authentication failed");
     }
   };
 
@@ -99,7 +107,7 @@ export default function Login() {
     <div className="page">
       <div className="card holo">
 
-        {/* 🤖 JARVIS ROBOT FACE */}
+        {/* 🤖 ROBOT */}
         <div
           className={`character
             ${focus === "password" && !showPassword ? "cover" : ""}
@@ -111,12 +119,10 @@ export default function Login() {
               <div className="eye"><span className="pupil" /></div>
               <div className="eye"><span className="pupil" /></div>
             </div>
-
             <div className="mouth">
               <span></span><span></span><span></span><span></span>
             </div>
           </div>
-
           <div className="ai-status">{status}</div>
         </div>
 
@@ -124,16 +130,12 @@ export default function Login() {
         <div className="form">
           <h2>J.A.R.V.I.S</h2>
           <p className="subtitle">Secure Access Interface</p>
-{/* 🏠 ROBOT HOME BUTTON */}
-<div
-  className="robot-home-btn"
-  onClick={() => window.location.href = "/"}
->
-  <span className="home-dot"></span>
-  RETURN TO HOME
-</div>
 
-          {/* 🔄 AUTH MODE SWITCH */}
+          <div className="robot-home-btn" onClick={() => navigate("/")}>
+            <span className="home-dot"></span>
+            RETURN TO HOME
+          </div>
+
           <div
             className={`robot-toggle ${mode}`}
             onClick={() => {
@@ -155,27 +157,22 @@ export default function Login() {
             AUTH MODE: {mode.toUpperCase()}
           </div>
 
-          {/* FULL NAME */}
           {mode === "register" && (
             <input
               type="text"
               placeholder="Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onFocus={() => setStatus("Capturing identity...")}
             />
           )}
 
-          {/* EMAIL */}
           <input
             type="email"
             placeholder="Authorized Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onFocus={() => setStatus("Scanning identity...")}
           />
 
-          {/* PASSWORD */}
           <div className="password-box">
             <input
               type={showPassword ? "text" : "password"}
@@ -189,34 +186,22 @@ export default function Login() {
             </span>
           </div>
 
-          {/* CONFIRM PASSWORD */}
           {mode === "register" && (
             <div className="password-box">
               <input
-                type={showPassword ? "text" : "password"}
+                type="password"
                 placeholder="Confirm Access Key"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                onFocus={() => setFocus("password")}
               />
-              <span onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? "🙈" : "👁️"}
-              </span>
             </div>
           )}
 
-          {/* ACTION BUTTON */}
           <button
             disabled={mode === "register" && mismatch}
-            style={{
-              opacity: mode === "register" && mismatch ? 0.5 : 1,
-              cursor: mode === "register" && mismatch ? "not-allowed" : "pointer"
-            }}
             onClick={handleAuth}
           >
-            {mode === "login"
-              ? "INITIATE LOGIN"
-              : "INITIATE REGISTRATION"}
+            {mode === "login" ? "INITIATE LOGIN" : "INITIATE REGISTRATION"}
           </button>
         </div>
       </div>
