@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { SYSTEM_COMMAND_KEYWORDS } from "../SystemCommands/commands";
 import "../styles/jarvisToast.css";
 import Fuse from "fuse.js"; // 🔥 ADDED
+import ChatHistory from "../components/ChatHistory";
+import { getChatHistory } from "../api/historyApi";
 
 const API_URL = "http://127.0.0.1:8000/command";
 
@@ -25,10 +27,12 @@ function JarvisApp({ openLogin }) {
   const [lastCommand, setLastCommand] = useState("");
   const [textCommand, setTextCommand] = useState("");
   const [jarvisReply, setJarvisReply] = useState("");
+const [activeChatId, setActiveChatId] = useState(null);
+const [activeConversation, setActiveConversation] = useState(null);
 
   // 🔥 ROBOTIC HUD NOTIFICATION STATE
   const [showRestriction, setShowRestriction] = useState(false);
-
+const [showHistory, setShowHistory] = useState(false);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -122,71 +126,98 @@ function JarvisApp({ openLogin }) {
       }
     }, typingSpeed);
   };
+useEffect(() => {
+  if (!activeChatId) return;
+
+  getChatHistory().then((data) => {
+    const found = data.find((c) => c.id === activeChatId);
+    if (found) {
+      setActiveConversation(found);
+      sessionStorage.setItem("active_chat_id", found.id);
+    }
+  });
+}, [activeChatId]);
 
   // =========================
   // BACKEND CALL
   // =========================
   async function sendCommand(command) {
-    if (!command || !command.trim()) return;
+  if (!command || !command.trim()) return;
 
-    const token = sessionStorage.getItem("jarvis_token");
-    const isGuest = !token;
+  const token = sessionStorage.getItem("jarvis_token");
+  const isGuest = !token;
 
-    // 🔥 UPDATED: REAL fuzzy matching (frontend = backend behavior)
-    const isSystemCommand = fuse.search(command.toLowerCase()).length > 0;
+  // 🔒 Guest restriction
+  const isSystemCommand = fuse.search(command.toLowerCase()).length > 0;
+  if (isGuest && isSystemCommand) {
+    const denyText =
+      "Access denied. Guest users cannot execute system commands.";
 
-    // 🔒 GUEST + SYSTEM COMMAND → UI + VOICE (FRONTEND)
-    if (isGuest && isSystemCommand) {
-      const denyText =
-        "Access denied. Guest users cannot execute system commands.";
+    setStatus("Restricted");
+    typeJarvisReply(
+      "⛔ ACCESS DENIED — Guest users cannot execute system commands."
+    );
+    speakFrontend(denyText);
 
-      setStatus("Restricted");
-      typeJarvisReply(
-        "⛔ ACCESS DENIED — Guest users cannot execute system commands."
+    setShowRestriction(true);
+    setTimeout(() => setShowRestriction(false), 3000);
+    return;
+  }
+
+  try {
+    // 🔥 ENSURE CHAT EXISTS
+    let chatId = sessionStorage.getItem("active_chat_id");
+
+    if (token && !chatId) {
+      const chatRes = await fetch(
+        "http://127.0.0.1:8000/auth/new-chat",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      speakFrontend(denyText);
 
-      setShowRestriction(true);
-      setTimeout(() => setShowRestriction(false), 3000);
+      const chatData = await chatRes.json();
+      if (chatData?.chat_id) {
+        chatId = chatData.chat_id;
+        sessionStorage.setItem("active_chat_id", chatId);
+      }
+    }
 
+    // ❌ still no chat → do nothing
+    if (!chatId) return;
+
+    // ✅ SEND COMMAND WITH chat_id
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({
+        command: command.trim(),
+        chat_id: chatId, // 🔥 THIS WAS MISSING
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      typeJarvisReply(err?.reply || "⚠️ Request failed");
       return;
     }
 
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({ command: command.trim() }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        typeJarvisReply(
-          err?.reply ||
-            err?.detail?.[0]?.msg ||
-            "⚠️ Request failed"
-        );
-        return;
-      }
-
-      const data = await res.json();
-
-      if (!data || typeof data.reply !== "string") {
-        typeJarvisReply("⚠️ Invalid response from Jarvis");
-        return;
-      }
-
-      setStatus("Responding…");
-      typeJarvisReply(data.reply);
-    } catch (err) {
-      console.error(err);
-      typeJarvisReply("Something went wrong.");
-      setStatus("Awaiting command");
-    }
+    const data = await res.json();
+    setStatus("Responding…");
+    typeJarvisReply(data.reply);
+  } catch (err) {
+    console.error(err);
+    typeJarvisReply("Something went wrong.");
+    setStatus("Awaiting command");
   }
+}
+
 
   // =========================
   // MIC TOGGLE
@@ -221,110 +252,139 @@ function JarvisApp({ openLogin }) {
   // =========================
   // UI
   // =========================
-  return (
-    <div className="hud">
-      <div className="hud-grid">
-        <div className="box-aura" />
+return (
+  <div className="hud">
+    <div className="hud-grid">
+      <div className="box-aura" />
+    </div>
+
+    <div className="three-bg">
+      <JarvisScene />
+    </div>
+
+    {/* SECURE MODE */}
+    <div className="hud-login" onClick={() => navigate("/auth")}>
+      <span className="hud-login-icon">🔐</span>
+      <span className="hud-login-text">SECURE MODE</span>
+    </div>
+
+    {/* MY CHATS TOGGLE */}
+    {user && (
+      <div
+        className="hud-login"
+        style={{ top: "90px" }}
+        onClick={() => setShowHistory((prev) => !prev)}
+      >
+        <span className="hud-login-icon">🗂️</span>
+        <span className="hud-login-text">
+          {showHistory ? "CLOSE CHATS" : "MY CHATS"}
+        </span>
       </div>
+    )}
 
-      <div className="three-bg">
-        <JarvisScene />
-      </div>
+    {/* 🔥 CHAT HISTORY DRAWER (MUST BE HERE) */}
+ {showHistory && (
+  <div className="chat-drawer">
+    <ChatHistory
+      onSelectChat={(chatId) => {
+        setActiveChatId(chatId);
+        setShowHistory(false);
+      }}
+    />
+  </div>
+)}
 
-      <div className="hud-login" onClick={() => navigate("/auth")}>
-        <span className="hud-login-icon">🔐</span>
-        <span className="hud-login-text">SECURE MODE</span>
-      </div>
+    {/* MAIN HUD FRAME */}
+    <div className="hud-frame">
+      <div className="hud-header">
+        <div className="hud-title">J.A.R.V.I.S</div>
 
-      <div className="hud-frame">
-        <div className="hud-header">
-          <div className="hud-title">J.A.R.V.I.S</div>
-
-          <div className="hud-subtitle">
-            <div className="hud-user">
-              <div className="hud-user-info">
-                <div className="hud-welcome">Welcome</div>
-                <div className="hud-username">
-                  {user ? user.name : "GUEST"}
-                </div>
-                <div className="hud-role">
-                  ROLE: {user ? user.role.toUpperCase() : "LIMITED"}
-                </div>
-                <div
-                  className={`hud-system-status ${
-                    user ? "enabled" : "restricted"
-                  }`}
-                >
-                  SYSTEM COMMANDS: {user ? "ENABLED" : "RESTRICTED"}
-                </div>
+        <div className="hud-subtitle">
+          <div className="hud-user">
+            <div className="hud-user-info">
+              <div className="hud-welcome">Welcome</div>
+              <div className="hud-username">
+                {user ? user.name : "GUEST"}
               </div>
-
-              {user && (
-                <>
-                  <div className="hud-divider" />
-                  <button
-                    className="hud-profile-btn"
-                    onClick={() => navigate("/profile")}
-                  >
-                    PROFILE
-                  </button>
-                </>
-              )}
+              <div className="hud-role">
+                ROLE: {user ? user.role.toUpperCase() : "LIMITED"}
+              </div>
+              <div
+                className={`hud-system-status ${
+                  user ? "enabled" : "restricted"
+                }`}
+              >
+                SYSTEM COMMANDS: {user ? "ENABLED" : "RESTRICTED"}
+              </div>
             </div>
+
+            {user && (
+              <>
+                <div className="hud-divider" />
+                <button
+                  className="hud-profile-btn"
+                  onClick={() => navigate("/profile")}
+                >
+                  PROFILE
+                </button>
+              </>
+            )}
           </div>
-        </div>
-
-        <div
-          className={`mic-orb 
-            ${listening ? "listening" : ""} 
-            ${status === "Processing…" ? "processing" : ""} 
-            ${status === "Responding…" ? "speaking" : ""}
-          `}
-          onClick={toggleListening}
-        >
-          🎙️
-        </div>
-
-        <div className="status">{status}</div>
-
-        {lastCommand && (
-          <div className="command-box user">
-            <span className="label">USER</span>
-            <span className="text">{lastCommand}</span>
-          </div>
-        )}
-
-        {jarvisReply && (
-          <div className="command-box jarvis">
-            <span className="label">JARVIS</span>
-            <span className="text" ref={jarvisTextRef}>
-              {jarvisReply}
-            </span>
-          </div>
-        )}
-
-        <div className="text-input">
-          <input
-            type="text"
-            placeholder="Type command…"
-            value={textCommand}
-            onChange={(e) => setTextCommand(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
-          />
-          <button onClick={handleTextSubmit}>EXECUTE</button>
         </div>
       </div>
 
-      {showRestriction && (
-        <div className="jarvis-toast">
-          <div className="jarvis-toast-title">🔒 ACCESS RESTRICTED</div>
-          <div className="jarvis-toast-text">
-            Please login to use system commands
-          </div>
+      <div
+        className={`mic-orb 
+          ${listening ? "listening" : ""} 
+          ${status === "Processing…" ? "processing" : ""} 
+          ${status === "Responding…" ? "speaking" : ""}
+        `}
+        onClick={toggleListening}
+      >
+        🎙️
+      </div>
+
+      <div className="status">{status}</div>
+
+      {lastCommand && (
+        <div className="command-box user">
+          <span className="label">USER</span>
+          <span className="text">{lastCommand}</span>
         </div>
       )}
-    </div>
-  );
-}
 
+      {jarvisReply && (
+        <div className="command-box jarvis">
+          <span className="label">JARVIS</span>
+          <span className="text" ref={jarvisTextRef}>
+            {jarvisReply}
+          </span>
+        </div>
+      )}
+
+      <div className="text-input">
+        <input
+          type="text"
+          placeholder="Type command…"
+          value={textCommand}
+          onChange={(e) => setTextCommand(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
+        />
+        <button onClick={handleTextSubmit}>EXECUTE</button>
+      </div>
+    </div>
+
+    {/* ACCESS DENIED TOAST */}
+    {showRestriction && (
+      <div className="jarvis-toast">
+        <div className="jarvis-toast-title">🔒 ACCESS RESTRICTED</div>
+        <div className="jarvis-toast-text">
+          Please login to use system commands
+        </div>
+      </div>
+    )}
+  </div>
+);
+}
 export default JarvisApp;
+ 

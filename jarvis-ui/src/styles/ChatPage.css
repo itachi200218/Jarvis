@@ -1,0 +1,112 @@
+===== Layout =====
+.chat-layout {
+  display: flex;
+  height: 100vh;
+  background: #020617;
+  color: #e5e7eb;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* ===== Sidebar (History) ===== */
+.history {
+  width: 280px;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.history h3 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.history .empty {
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+.history-item {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #1e293b;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.history-item:hover {
+  background: #334155;
+}
+
+/* ===== Chat ===== */
+.chat {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+/* ===== Messages ===== */
+.msg {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.msg.user {
+  margin-left: auto;
+  background: #2563eb;
+  color: white;
+}
+
+.msg.jarvis {
+  margin-right: auto;
+  background: #1e293b;
+  color: #e5e7eb;
+}
+.chat-drawer {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+
+  width: 360px;
+  height: 520px;
+
+  background: rgba(8, 14, 28, 0.98);
+  border-radius: 18px;
+  border: 1px solid rgba(0, 255, 255, 0.35);
+
+  backdrop-filter: blur(18px);
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.35);
+
+  z-index: 99999;
+
+  overflow-y: auto;
+  padding: 14px;
+}
+.chat-history {
+  width: 100%;
+  height: 100%;
+}
+
+.chat-item {
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.chat-item:hover {
+  background: rgba(0, 255, 255, 0.12);
+}
+
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

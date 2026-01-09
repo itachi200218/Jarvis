@@ -1284,3 +1284,29 @@ body {
   color: #ff4d4d; /* red */
   opacity: 0.9;
 }
+/* 🔥 ONLY CHAT HISTORY PAGE */
+.chat-history-page .hud-frame.chat-detail {
+  width: 100%;
+  max-width: 1100px;   /* 👈 control message width HERE */
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+/* make bubbles wider */
+.chat-history-page .command-box {
+  max-width: 95%;
+}
+.back-home-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  color: #00e5ff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.back-home-btn:hover {
+  background: rgba(0, 229, 255, 0.1);
+}

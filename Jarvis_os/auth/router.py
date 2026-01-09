@@ -46,12 +46,20 @@ def register(data: RegisterRequest):
 # ==============================
 @router.post("/login")
 def login(data: LoginRequest):
-    user = users_collection.find_one({"email": data.email})
+    user = users_collection.find_one({
+        "$or": [
+            {"email": data.email},
+            {"name": data.email}
+        ]
+    })
 
     if not user or not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token({"sub": user["email"]})
+    token = create_access_token({
+        "sub": user["email"],
+        "name": user["name"]
+    })
 
     return {
         "access_token": token,

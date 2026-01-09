@@ -17,6 +17,10 @@ from weather_service import get_weather
 from time_service import get_time_from_timezone_db
 from maps_service import get_distance
 from location_service import get_current_location
+# ============
+#chat history
+#============
+from chatHistory.chathistory import add_message
 
 # ==============================
 # LOAD ENV
@@ -194,156 +198,139 @@ def find_intent(command: str):
                 best_intent = doc["intent"]
 
     return (best_intent, int(best_score)) if best_score >= 70 else (None, int(best_score))
-    # ==============================
-    # 👤 USER IDENTITY QUERIES
-    # ==============================
-    if "my name" in raw:
-        if user_role == "guest" or not user_name:
-            response = "You are currently using guest access."
-        else:
-            response = f"Your name is {user_name}."
-        speak_async(response)
-        return {
-            "reply": response,
-            "intent": "user_identity",
-            "confidence": 100
-        }
 
 # ==============================
 # 🔥 SINGLE COMMAND ROUTER
 # ==============================
-def handle_command(command: str, user_role: str = "guest"):
+IDENTITY_PHRASES = [
+    "what is my name",
+    "tell me my name",
+    "who am i",
+    "do you know my name",
+    "say my name"
+]
+
+def is_identity_query(text: str) -> bool:
+    text = normalize_text(text)
+
+    for phrase in IDENTITY_PHRASES:
+        score = (
+            fuzz.token_set_ratio(text, phrase) * 0.6 +
+            fuzz.partial_ratio(text, phrase) * 0.4
+        )
+        if score >= 70:
+            return True
+
+    return False
+
+# ==============================
+# 🔥 SINGLE COMMAND ROUTER
+# ==============================
+def handle_command(command, user_role="guest", user_name=None, chat_id=None):
+
     raw = command.strip().lower()
+    intent = None
+    confidence = 0
+    response = "I am not sure."
 
-    # WAKE WORD
-    if raw in {"hello", "hey jarvis", "jarvis"}:
-        response = "Yes. How can I help you?"
-        speak_async(response)
-        return {"reply": response, "intent": "wake", "confidence": 100}
-
-    if not raw:
-        response = "I did not hear anything."
-        speak_async(response)
-        return {"reply": response, "intent": None, "confidence": 0}
-
-    intent, confidence = find_intent(raw)
-    print(f"🧠 Intent: {intent}, Confidence: {confidence}%")
     # ==============================
-    # 🔐 STRICT GUEST ENFORCEMENT
+    # 👤 IDENTITY
     # ==============================
-    if user_role == "guest":
-        # intent == None → AI fallback → ALLOW
-        if intent is not None and intent not in GUEST_ALLOWED_INTENTS:
-            response = (
-                "Guest access limited. "
-                "Please sign in to access system features."
-            )
-            speak_async(response)
-            return {
-                "reply": response,
-                "intent": intent,
-                "confidence": confidence
-            }
-
- 
-    # ==============================
-    # SYSTEM / DB INTENTS
-    # ==============================
-    if intent == "open_chrome":
-        open_chrome()
-        response = "Opening Google Chrome."
-
-    elif intent == "open_vscode":
-        open_vscode()
-        response = "Opening Visual Studio Code."
-
-    elif intent == "shutdown":
-        shutdown_system()
-        response = "Shutting down the system."
-
-    elif intent == "restart":
-        restart_system()
-        response = "Restarting the system."
-
-    elif intent == "volume_up":
-        increase_volume()
-        response = "Increasing volume."
-
-    elif intent == "volume_down":
-        decrease_volume()
-        response = "Decreasing volume."
-
-    elif intent == "mute_volume":
-        mute_volume()
-        response = "Volume muted."
-
-    elif intent == "screenshot":
-        take_screenshot()
-        response = "Screenshot saved successfully."
-
-    elif intent == "cpu_usage":
-        response = cpu_usage()
-
-    elif intent == "ram_usage":
-        response = ram_usage()
-
-    elif intent == "gpu_usage":
-        response = gpu_usage()
-
-    elif intent == "battery_status":
-        response = battery_status()
-
-    elif intent == "disk_space":
-        response = disk_space()
-
-    elif intent == "network_status":
-        response = network_status()
-
-    elif intent == "open_explorer":
-        open_explorer()
-        response = "Opening File Explorer."
-
-    elif intent == "open_settings":
-        open_settings()
-        response = "Opening Settings."
-
-    elif intent == "current_time":
-        response = current_time()
-
-    elif intent == "current_date":
-        response = current_date()
-
-    elif "weather" in raw:
-        city = raw.replace("weather", "").replace("in", "").strip()
-        response = get_weather(city or "your location")
-        intent = "weather"
-        confidence = 100
-
-    elif "time in" in raw:
-        location = raw.replace("time in", "").strip()
-        response = get_time_from_timezone_db(location)
-        intent = "time"
-        confidence = 100
-
-    elif "distance" in raw:
-        cleaned = raw.replace("distance", "").strip()
-        if " to " in cleaned:
-            source, destination = cleaned.split(" to ", 1)
-            response = get_distance(source.strip(), destination.strip())
+    if is_identity_query(raw):
+        if user_role == "guest" or not user_name:
+            response = "You are currently using guest access."
         else:
-            response = get_distance(None, cleaned)
-        intent = "maps"
+            response = f"Your name is {user_name}."
+        intent = "user_identity"
         confidence = 100
 
-    elif "who created you" in raw or "who made you" in raw:
-        response = "I was created by A Chetan. He is my creator."
-        intent = "creator"
+    # ==============================
+    # 🔥 WAKE WORD
+    # ==============================
+    elif raw in {"hello", "hey jarvis", "jarvis"}:
+        response = "Yes. How can I help you?"
+        intent = "wake"
         confidence = 100
 
-    else:
-        response = get_ai_response(command)
-        intent = "ai_fallback"
+    # ==============================
+    # EMPTY INPUT
+    # ==============================
+    elif not raw:
+        response = "I did not hear anything."
+        intent = None
         confidence = 0
 
+    else:
+        # ==============================
+        # INTENT DETECTION
+        # ==============================
+        intent, confidence = find_intent(raw)
+
+        # ==============================
+        # 🔐 GUEST RESTRICTION
+        # ==============================
+        if user_role == "guest" and intent not in GUEST_ALLOWED_INTENTS:
+            response = "Guest access limited. Please sign in."
+
+        # ==============================
+        # SYSTEM ACTIONS
+        # ==============================
+        elif intent == "open_chrome":
+            open_chrome()
+            response = "Opening Google Chrome."
+
+        elif intent == "open_vscode":
+            open_vscode()
+            response = "Opening Visual Studio Code."
+
+        elif intent == "shutdown":
+            shutdown_system()
+            response = "Shutting down the system."
+
+        elif intent == "restart":
+            restart_system()
+            response = "Restarting the system."
+
+        elif intent == "volume_up":
+            increase_volume()
+            response = "Increasing volume."
+
+        elif intent == "volume_down":
+            decrease_volume()
+            response = "Decreasing volume."
+
+        elif intent == "mute_volume":
+            mute_volume()
+            response = "Volume muted."
+
+        elif intent == "current_time":
+            response = current_time()
+
+        elif intent == "current_date":
+            response = current_date()
+
+        # ==============================
+        # 🤖 AI FALLBACK
+        # ==============================
+        else:
+            response = get_ai_response(command)
+            intent = "ai_fallback"
+            confidence = 0
+
+    # ==============================
+    # 💾 CHAT HISTORY (ONCE ONLY ✅)
+    # ==============================
+    if user_role == "user" and user_name and chat_id:
+        add_message(chat_id, user_name, "user", command)
+        add_message(chat_id, user_name, "jarvis", response)
+
+    # ==============================
+    # 🔊 SPEAK + RETURN
+    # ==============================
     speak_async(response)
-    return {"reply": response, "intent": intent, "confidence": confidence}
+
+    return {
+        "reply": response,
+        "intent": intent,
+        "confidence": confidence
+    }

@@ -1,5 +1,4 @@
 import threading
-import sys
 import uvicorn
 import os
 import jwt
@@ -13,6 +12,7 @@ from pydantic import BaseModel
 
 from jarvis_core import handle_command, speak_async
 from auth.router import router as auth_router
+from auth.historyrouter import router as history_router
 
 # ==============================
 # LOAD ENV
@@ -40,7 +40,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ROUTERS
 app.include_router(auth_router)
+app.include_router(history_router)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
@@ -59,6 +61,7 @@ def startup_event():
 # ==============================
 class CommandRequest(BaseModel):
     command: str
+    chat_id: str | None = None   # 🔥 REQUIRED
 
 # ==============================
 # ROUTES
@@ -73,6 +76,7 @@ def execute_command(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     user_role = "guest"
+    user_name = None
 
     if credentials and credentials.credentials:
         try:
@@ -82,16 +86,22 @@ def execute_command(
                 algorithms=[JWT_ALGORITHM]
             )
 
-            # ✅ THIS LINE IS THE KEY
-            if payload.get("sub"):
+            name = payload.get("name")
+            if name:
                 user_role = "user"
+                user_name = name
 
         except jwt.ExpiredSignatureError:
-            user_role = "guest"
+            pass
         except jwt.InvalidTokenError:
-            user_role = "guest"
+            pass
 
-    return handle_command(req.command, user_role=user_role)
+    return handle_command(
+        command=req.command,
+        user_role=user_role,
+        user_name=user_name,
+        chat_id=req.chat_id     # 🔥 PASS IT
+    )
 
 # ==============================
 # ENTRY
