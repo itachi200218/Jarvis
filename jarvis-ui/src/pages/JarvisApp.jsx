@@ -3,8 +3,17 @@ import "../App.css";
 import JarvisScene from "../3dModel/JarvisScene";
 import { useAuth } from "../context/authcontext_temp.jsx";
 import { useNavigate } from "react-router-dom";
+import { SYSTEM_COMMAND_KEYWORDS } from "../SystemCommands/commands";
+import "../styles/jarvisToast.css";
+import Fuse from "fuse.js"; // 🔥 ADDED
 
 const API_URL = "http://127.0.0.1:8000/command";
+
+// 🔥 ADDED: Frontend fuzzy matcher (same idea as backend)
+const fuse = new Fuse(SYSTEM_COMMAND_KEYWORDS, {
+  includeScore: true,
+  threshold: 0.4, // works well for chrome / crome / cromr / chorme
+});
 
 function JarvisApp({ openLogin }) {
   const recognitionRef = useRef(null);
@@ -17,8 +26,27 @@ function JarvisApp({ openLogin }) {
   const [textCommand, setTextCommand] = useState("");
   const [jarvisReply, setJarvisReply] = useState("");
 
+  // 🔥 ROBOTIC HUD NOTIFICATION STATE
+  const [showRestriction, setShowRestriction] = useState(false);
+
   const { user, loading } = useAuth();
-  const navigate = useNavigate(); // ✅ REQUIRED
+  const navigate = useNavigate();
+
+  // =========================
+  // 🔊 FRONTEND JARVIS VOICE (DENIAL ONLY)
+  // =========================
+  const speakFrontend = (text) => {
+    if (!window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 0.8;
+    utterance.volume = 1;
+
+    window.speechSynthesis.speak(utterance);
+  };
 
   // =========================
   // SPEECH RECOGNITION
@@ -58,6 +86,11 @@ function JarvisApp({ openLogin }) {
   // TYPING EFFECT
   // =========================
   const typeJarvisReply = (text) => {
+    if (typeof text !== "string") {
+      setJarvisReply("⚠️ Invalid response from Jarvis");
+      return;
+    }
+
     clearInterval(typingIntervalRef.current);
 
     const cleanText = text.trim();
@@ -93,26 +126,67 @@ function JarvisApp({ openLogin }) {
   // =========================
   // BACKEND CALL
   // =========================
-  const sendCommand = async (command) => {
+  async function sendCommand(command) {
+    if (!command || !command.trim()) return;
+
+    const token = sessionStorage.getItem("jarvis_token");
+    const isGuest = !token;
+
+    // 🔥 UPDATED: REAL fuzzy matching (frontend = backend behavior)
+    const isSystemCommand = fuse.search(command.toLowerCase()).length > 0;
+
+    // 🔒 GUEST + SYSTEM COMMAND → UI + VOICE (FRONTEND)
+    if (isGuest && isSystemCommand) {
+      const denyText =
+        "Access denied. Guest users cannot execute system commands.";
+
+      setStatus("Restricted");
+      typeJarvisReply(
+        "⛔ ACCESS DENIED — Guest users cannot execute system commands."
+      );
+      speakFrontend(denyText);
+
+      setShowRestriction(true);
+      setTimeout(() => setShowRestriction(false), 3000);
+
+      return;
+    }
+
     try {
       const res = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ command: command.trim() }),
       });
 
-      const data = await res.json();
-      setStatus("Responding…");
+      if (!res.ok) {
+        const err = await res.json();
+        typeJarvisReply(
+          err?.reply ||
+            err?.detail?.[0]?.msg ||
+            "⚠️ Request failed"
+        );
+        return;
+      }
 
-      typeJarvisReply(
-        typeof data.reply === "string" ? data.reply : "Command executed."
-      );
+      const data = await res.json();
+
+      if (!data || typeof data.reply !== "string") {
+        typeJarvisReply("⚠️ Invalid response from Jarvis");
+        return;
+      }
+
+      setStatus("Responding…");
+      typeJarvisReply(data.reply);
     } catch (err) {
       console.error(err);
       typeJarvisReply("Something went wrong.");
       setStatus("Awaiting command");
     }
-  };
+  }
 
   // =========================
   // MIC TOGGLE
@@ -149,7 +223,6 @@ function JarvisApp({ openLogin }) {
   // =========================
   return (
     <div className="hud">
-
       <div className="hud-grid">
         <div className="box-aura" />
       </div>
@@ -158,48 +231,46 @@ function JarvisApp({ openLogin }) {
         <JarvisScene />
       </div>
 
-      {/* 🔐 LOGIN → /auth */}
       <div className="hud-login" onClick={() => navigate("/auth")}>
         <span className="hud-login-icon">🔐</span>
         <span className="hud-login-text">SECURE MODE</span>
       </div>
 
       <div className="hud-frame">
-
         <div className="hud-header">
           <div className="hud-title">J.A.R.V.I.S</div>
 
-          <div
-            className="hud-subtitle"
-            style={{
-              display: "flex",
-              gap: "10px",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-           {user ? (
-  <div className="hud-user">
-    <div className="hud-user-info">
-      Welcome <span className="hud-username">{user.name}</span>
-      <span className="hud-role">ROLE: {user.role.toUpperCase()}</span>
-    </div>
+          <div className="hud-subtitle">
+            <div className="hud-user">
+              <div className="hud-user-info">
+                <div className="hud-welcome">Welcome</div>
+                <div className="hud-username">
+                  {user ? user.name : "GUEST"}
+                </div>
+                <div className="hud-role">
+                  ROLE: {user ? user.role.toUpperCase() : "LIMITED"}
+                </div>
+                <div
+                  className={`hud-system-status ${
+                    user ? "enabled" : "restricted"
+                  }`}
+                >
+                  SYSTEM COMMANDS: {user ? "ENABLED" : "RESTRICTED"}
+                </div>
+              </div>
 
-    <div className="hud-divider" />
-
-    <button
-      className="hud-profile-btn"
-      onClick={() => navigate("/profile")}
-    >
-      PROFILE
-    </button>
-  </div>
-) : (
-  <span className="hud-subtitle">
-    Just A Rather Very Intelligent System
-  </span>
-)}
-
+              {user && (
+                <>
+                  <div className="hud-divider" />
+                  <button
+                    className="hud-profile-btn"
+                    onClick={() => navigate("/profile")}
+                  >
+                    PROFILE
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -242,8 +313,16 @@ function JarvisApp({ openLogin }) {
           />
           <button onClick={handleTextSubmit}>EXECUTE</button>
         </div>
-
       </div>
+
+      {showRestriction && (
+        <div className="jarvis-toast">
+          <div className="jarvis-toast-title">🔒 ACCESS RESTRICTED</div>
+          <div className="jarvis-toast-text">
+            Please login to use system commands
+          </div>
+        </div>
+      )}
     </div>
   );
 }

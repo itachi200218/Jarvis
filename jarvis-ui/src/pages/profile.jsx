@@ -3,14 +3,17 @@ import { useNavigate } from "react-router-dom";
 import {
   getMyProfile,
   updateProfileName,
-  changePassword
+  changePassword,
+  uploadProfileAvatar
 } from "../api/profileApi";
 import { useAuth } from "../context/authcontext_temp.jsx";
 import "../App.css";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { logout } = useAuth(); // ✅ IMPORTANT
+
+  // 🔥 ADDED user (NOT changing anything else)
+  const { user, logout, refreshUser } = useAuth();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,6 +28,10 @@ export default function Profile() {
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+
+  // 🖼 Avatar states
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // =========================
   // LOAD PROFILE
@@ -43,20 +50,6 @@ export default function Profile() {
     }
     loadProfile();
   }, []);
-
-  if (loading) {
-    return <div className="status">🔄 Loading profile…</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="status error">
-        🔒 {error}
-        <br />
-        <button onClick={() => navigate("/")}>Return to Jarvis</button>
-      </div>
-    );
-  }
 
   // =========================
   // UPDATE NAME
@@ -102,6 +95,48 @@ export default function Profile() {
   };
 
   // =========================
+  // UPLOAD AVATAR
+  // =========================
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Instant preview
+    setAvatarPreview(URL.createObjectURL(file));
+
+    try {
+      setUploadingAvatar(true);
+      await uploadProfileAvatar(file);
+
+      // Refresh user from backend
+      await refreshUser();
+      const updated = await getMyProfile();
+      setProfile(updated);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  // =========================
+  // UI STATES
+  // =========================
+  if (loading) {
+    return <div className="status">🔄 Loading profile…</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="status error">
+        🔒 {error}
+        <br />
+        <button onClick={() => navigate("/")}>Return to Jarvis</button>
+      </div>
+    );
+  }
+
+  // =========================
   // UI
   // =========================
   return (
@@ -114,9 +149,39 @@ export default function Profile() {
         </div>
 
         <div className="profile-card">
+
+          {/* 🖼 PROFILE AVATAR */}
+          <div className="profile-avatar-section">
+            <img
+              src={
+                avatarPreview ||
+                profile.avatar ||
+                "/default-avatar.png"
+              }
+              alt="Profile"
+              className="profile-avatar"
+            />
+
+            <label className="avatar-upload-btn">
+              {uploadingAvatar ? "UPLOADING..." : "CHANGE PHOTO"}
+              <input
+                type="file"
+                accept="image/png, image/jpeg"
+                hidden
+                onChange={handleAvatarUpload}
+              />
+            </label>
+          </div>
+
           <p><strong>Name:</strong> {profile.name}</p>
           <p><strong>Email:</strong> {profile.email}</p>
-          <p><strong>Role:</strong> {profile.role.toUpperCase()}</p>
+
+          {/* 🔥 FIXED ROLE DISPLAY (LOGIN STATE, NOT DB) */}
+          <p>
+            <strong>Role:</strong>{" "}
+            {user ? user.role.toUpperCase() : "GUEST"}
+          </p>
+
           <p>
             <strong>Secure Mode:</strong>{" "}
             {profile.secure_mode ? "ENABLED 🔐" : "DISABLED"}
@@ -127,12 +192,11 @@ export default function Profile() {
           <button onClick={() => setEditMode(true)}>EDIT PROFILE</button>
           <button onClick={() => setPasswordMode(true)}>CHANGE PASSWORD</button>
 
-          {/* ✅ FIXED LOGOUT */}
           <button
             className="danger"
             onClick={() => {
-              logout();        // ✅ clears session + context
-              navigate("/");   // ✅ redirect
+              logout();
+              navigate("/");
             }}
           >
             LOGOUT

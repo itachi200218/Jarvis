@@ -75,3 +75,28 @@ export async function changePassword(oldPassword, newPassword) {
 
   return data;
 }
+
+// ==============================
+// 🖼 UPLOAD PROFILE AVATAR (NEW)
+// ==============================
+export async function uploadProfileAvatar(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${BASE_URL}/auth/upload-avatar`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      // ❌ DO NOT set Content-Type manually
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Failed to upload avatar");
+  }
+
+  return data; // { message, avatar }
+}

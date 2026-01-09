@@ -10,22 +10,40 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔄 Load user from token
+  // 🔄 Refresh user based on TOKEN (NOT DB ROLE)
   const refreshUser = async () => {
+    const token = sessionStorage.getItem("jarvis_token");
+
+    // ❌ No token → GUEST
+    if (!token) {
+      setUser(null);
+      return;
+    }
+
+    // ✅ Token exists → USER
     try {
       const profile = await getMyProfile();
-      setUser(profile);
-    } catch {
-      setUser(null);
+
+      setUser({
+        ...profile,
+        role: "user", // 🔥 FORCE USER ROLE (your rule)
+      });
+    } catch (err) {
+      // Even if profile API fails, token = logged in
+      setUser({
+        name: "User",
+        role: "user",
+      });
     }
   };
 
-  // 🚪 LOGOUT (THIS WAS MISSING)
+  // 🚪 LOGOUT
   const logout = () => {
     sessionStorage.removeItem("jarvis_token");
     setUser(null);
   };
 
+  // 🔁 INIT ON APP LOAD
   useEffect(() => {
     async function init() {
       try {
@@ -44,7 +62,7 @@ export function AuthProvider({ children }) {
         setUser,
         loading,
         refreshUser,
-        logout, // ✅ NOW AVAILABLE
+        logout,
       }}
     >
       {children}

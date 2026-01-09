@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from pathlib import Path
+import uuid, shutil
 
 from auth.models import (
     RegisterRequest,
@@ -6,6 +8,7 @@ from auth.models import (
     UpdateProfileRequest,
     ChangePasswordRequest
 )
+
 from auth.database import users_collection
 from auth.security import (
     hash_password,
@@ -32,7 +35,8 @@ def register(data: RegisterRequest):
         "email": data.email,
         "password": hash_password(data.password),
         "role": "guest",
-        "secure_mode": False
+        "secure_mode": False,
+        "avatar": None
     })
 
     return {"message": "User registered successfully"}
@@ -68,10 +72,11 @@ def get_my_profile(current_user: dict = Depends(get_current_user)):
         "email": current_user["email"],
         "role": current_user.get("role", "guest"),
         "secure_mode": current_user.get("secure_mode", False),
+        "avatar": current_user.get("avatar")
     }
 
 # ==============================
-# ✏️ UPDATE PROFILE (NAME)
+# ✏️ UPDATE PROFILE
 # ==============================
 @router.put("/profile")
 def update_profile(
@@ -82,7 +87,6 @@ def update_profile(
         {"email": current_user["email"]},
         {"$set": {"name": data.name}}
     )
-
     return {"message": "Profile updated successfully"}
 
 # ==============================
@@ -102,3 +106,35 @@ def change_password(
     )
 
     return {"message": "Password updated successfully"}
+
+# ==============================
+# 🖼 UPLOAD AVATAR
+# ==============================
+@router.post("/upload-avatar")
+def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    if file.content_type not in ["image/jpeg", "image/png"]:
+        raise HTTPException(status_code=400, detail="Only JPG or PNG allowed")
+
+    UPLOAD_DIR = Path("uploads/profiles")
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{uuid.uuid4()}.png"
+    file_path = UPLOAD_DIR / filename
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    avatar_url = f"http://localhost:8000/uploads/profiles/{filename}"
+
+    users_collection.update_one(
+        {"email": current_user["email"]},
+        {"$set": {"avatar": avatar_url}}
+    )
+
+    return {
+        "message": "Avatar uploaded successfully",
+        "avatar": avatar_url
+    }

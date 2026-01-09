@@ -1,0 +1,40 @@
+/* styles/jarvisToast.css */
+
+/* styles/jarvisToast.css */
+
+.jarvis-toast {
+  position: fixed;
+  top: 35px;          /* 🔼 TOP */
+  left: 35px;         /* ◀️ LEFT */
+  background: rgba(10, 10, 20, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+  padding: 14px 18px;
+  border-radius: 10px;
+  z-index: 9999;
+  animation: jarvisSlideIn 0.4s ease-out;
+}
+
+.jarvis-toast-title {
+  color: #ff4d4d;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.jarvis-toast-text {
+  color: #e0ffff;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+@keyframes jarvisSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px); /* 🔼 from top */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

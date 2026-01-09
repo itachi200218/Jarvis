@@ -1,79 +1,39 @@
-# time_service.py
+import os
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
+from dotenv import load_dotenv
+from location_service import geocode
 
+load_dotenv()
 
-def geocode_place(query: str):
-    """Try multiple geocoding strategies"""
-    geo_url = "https://geocoding-api.open-meteo.com/v1/search"
+TIMEZONEDB_KEY = os.getenv("TIMEZONEDB_API_KEY")
 
-    attempts = [
-        query,                          # "india kolkata"
-        " ".join(query.split()[::-1]),  # "kolkata india"
-        query.split()[-1]               # "kolkata"
-    ]
-
-    for q in attempts:
-        res = requests.get(
-            geo_url,
-            params={
-                "name": q,
-                "count": 1,
-                "language": "en",
-                "format": "json"
-            },
-            timeout=5
-        )
-
-        data = res.json()
-        if data.get("results"):
-            return data["results"][0]
-
-    return None
-
-
-def get_time_from_timezone_db(spoken_location: str) -> str:
+def get_time_from_timezone_db(place: str) -> str:
     try:
-        # ==============================
-        # 1️⃣ Geocode place (SMART)
-        # ==============================
-        location = geocode_place(spoken_location)
+        note = geocode(place)
+        if not note:
+            return f"I couldn't find the time for {place}."
 
-        if not location:
-            return f"I couldn't find the time for {spoken_location}."
+        name, (lat, lon) = note
 
-        lat = location["latitude"]
-        lon = location["longitude"]
-        city = location["name"]
-        country = location.get("country", "")
-
-        # ==============================
-        # 2️⃣ Get timezone info (AUTO)
-        # ==============================
-        time_res = requests.get(
-            "https://api.open-meteo.com/v1/forecast",
+        res = requests.get(
+            "http://api.timezonedb.com/v2.1/get-time-zone",
             params={
-                "latitude": lat,
-                "longitude": lon,
-                "timezone": "auto"
+                "key": TIMEZONEDB_KEY,
+                "format": "json",
+                "by": "position",
+                "lat": lat,
+                "lng": lon
             },
             timeout=5
-        )
+        ).json()
 
-        time_data = time_res.json()
-        utc_offset = time_data.get("utc_offset_seconds")
-
-        if utc_offset is None:
+        if res["status"] != "OK":
             return "I couldn't fetch the time right now."
 
-        # ==============================
-        # 3️⃣ Calculate REAL local time
-        # ==============================
-        local_time = datetime.utcnow() + timedelta(seconds=utc_offset)
-        time_str = local_time.strftime("%H:%M")
+        local_time = datetime.utcfromtimestamp(res["timestamp"])
 
-        place = f"{city}, {country}" if country else city
-        return f"The current time in {place} is {time_str}."
+        return f"The current time in {name} is {local_time.strftime('%H:%M')}."
 
     except Exception:
         return "I was unable to get the time right now."

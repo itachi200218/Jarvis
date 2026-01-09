@@ -1,23 +1,37 @@
-# main.py
 import threading
 import sys
 import uvicorn
+import os
+import jwt
+from dotenv import load_dotenv
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from jarvis_core import handle_command, speak_async
-from auth.router import router as auth_router   # ✅ AUTH ROUTER
+from auth.router import router as auth_router
+
+# ==============================
+# LOAD ENV
+# ==============================
+load_dotenv()
+
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGORITHM = "HS256"
+
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET not loaded")
+
+security = HTTPBearer(auto_error=False)
 
 # ==============================
 # FASTAPI APP
 # ==============================
 app = FastAPI(title="Jarvis API")
 
-# ==============================
-# CORS (REACT SUPPORT)
-# ==============================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,13 +40,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==============================
-# AUTH ROUTES
-# ==============================
 app.include_router(auth_router)
 
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # ==============================
-# STARTUP GREETING (API MODE)
+# STARTUP
 # ==============================
 @app.on_event("startup")
 def startup_event():
@@ -42,7 +55,7 @@ def startup_event():
     ).start()
 
 # ==============================
-# REQUEST MODEL
+# MODELS
 # ==============================
 class CommandRequest(BaseModel):
     command: str
@@ -55,39 +68,38 @@ def root():
     return {"status": "Jarvis is running"}
 
 @app.post("/command")
-def execute_command(req: CommandRequest):
-    return handle_command(req.command)
+def execute_command(
+    req: CommandRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    user_role = "guest"
+
+    if credentials and credentials.credentials:
+        try:
+            payload = jwt.decode(
+                credentials.credentials,
+                JWT_SECRET,
+                algorithms=[JWT_ALGORITHM]
+            )
+
+            # ✅ THIS LINE IS THE KEY
+            if payload.get("sub"):
+                user_role = "user"
+
+        except jwt.ExpiredSignatureError:
+            user_role = "guest"
+        except jwt.InvalidTokenError:
+            user_role = "guest"
+
+    return handle_command(req.command, user_role=user_role)
 
 # ==============================
-# CMD / WAKE-WORD MODE
-# ==============================
-def run_cmd_mode():
-    if "--greet" in sys.argv:
-        speak_async("Yes. How can I help you?")
-        return
-
-    if "--command" in sys.argv:
-        idx = sys.argv.index("--command") + 1
-        if idx < len(sys.argv):
-            command = sys.argv[idx]
-            handle_command(command)
-        return
-
-# ==============================
-# ENTRY POINT
+# ENTRY
 # ==============================
 if __name__ == "__main__":
-
-    # 🔥 If launched from wake-word listener
-    if "--greet" in sys.argv or "--command" in sys.argv:
-        run_cmd_mode()
-
-    # 🔥 Normal API server
-    else:
-        print("🚀 Starting Jarvis FastAPI server...")
-        uvicorn.run(
-            "main:app",
-            host="127.0.0.1",
-            port=8000,
-            reload=False
-        )
+    uvicorn.run(
+        "main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=False
+    )
