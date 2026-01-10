@@ -1,67 +1,33 @@
 [
   {
-    "id": "16b9a076-6587-44dc-a867-da86dd3e3658",
-    "started_at": "2026-01-09T20:43:01.765762",
+    "id": "9a3772ee-caa5-49c8-923c-1f0c91e14067",
+    "started_at": "2026-01-10T11:51:16.002520",
     "messages": [
       {
         "role": "user",
-        "text": "tell me a joke",
-        "time": "2026-01-09T20:43:04.382928"
+        "text": "i",
+        "time": "2026-01-10T11:51:16.030180"
       },
       {
         "role": "jarvis",
-        "text": "Sure, here's one for you: Why couldn't the bicycle find its way home? It lost its bearings!",
-        "time": "2026-01-09T20:43:04.399560"
-      },
-      {
-        "role": "user",
-        "text": "rtx 4050",
-        "time": "2026-01-09T20:53:13.613855"
-      },
-      {
-        "role": "jarvis",
-        "text": "As of my last update, there is no information available about an RTX 4050 graphics card. I recommend checking the manufacturer's website or official sources for the most up-to-date information on new releases.",
-        "time": "2026-01-09T20:53:13.628769"
-      },
+        "text": "Your name is chetan.",
+        "time": "2026-01-10T11:51:16.049161"
+      }
+    ]
+  },
+  {
+    "id": "cabfa7ad-bdb7-401a-969b-970230ec9ded",
+    "started_at": "2026-01-10T11:51:54.571129",
+    "messages": [
       {
         "role": "user",
         "text": "hello",
-        "time": "2026-01-09T20:53:28.182599"
+        "time": "2026-01-10T11:51:54.596092"
       },
       {
         "role": "jarvis",
         "text": "Yes. How can I help you?",
-        "time": "2026-01-09T20:53:28.201822"
-      },
-      {
-        "role": "user",
-        "text": "hi",
-        "time": "2026-01-09T21:04:53.321922"
-      },
-      {
-        "role": "jarvis",
-        "text": "Hello! How can I assist you today?",
-        "time": "2026-01-09T21:04:53.342795"
-      },
-      {
-        "role": "user",
-        "text": "NFS game",
-        "time": "2026-01-09T21:12:59.769361"
-      },
-      {
-        "role": "jarvis",
-        "text": "\"Need for Speed is a popular racing video game series known for its fast-paced gameplay and customizable cars.\"",
-        "time": "2026-01-09T21:12:59.792134"
-      },
-      {
-        "role": "user",
-        "text": "NFS game",
-        "time": "2026-01-09T21:13:19.919970"
-      },
-      {
-        "role": "jarvis",
-        "text": "Need for Speed (NFS) is a popular racing video game series developed by Electronic Arts.",
-        "time": "2026-01-09T21:13:19.943127"
+        "time": "2026-01-10T11:51:54.612442"
       }
     ]
   }

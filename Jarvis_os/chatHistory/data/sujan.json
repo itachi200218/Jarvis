@@ -1,0 +1,34 @@
+[
+  {
+    "id": "7871bc22-11c1-4d25-97a3-6b2b40298289",
+    "started_at": "2026-01-10T11:50:14.034304",
+    "messages": [
+      {
+        "role": "user",
+        "text": "hi",
+        "time": "2026-01-10T11:50:15.774770"
+      },
+      {
+        "role": "jarvis",
+        "text": "Hello! How can I assist you today?",
+        "time": "2026-01-10T11:50:15.789231"
+      }
+    ]
+  },
+  {
+    "id": "c342c9f7-2219-4f06-9d6d-d133445483ae",
+    "started_at": "2026-01-10T11:50:39.597501",
+    "messages": [
+      {
+        "role": "user",
+        "text": "tell me a joke",
+        "time": "2026-01-10T11:50:41.253769"
+      },
+      {
+        "role": "jarvis",
+        "text": "Why couldn't the bicycle find its way home? Because it lost its bearings!",
+        "time": "2026-01-10T11:50:41.276085"
+      }
+    ]
+  }
+]

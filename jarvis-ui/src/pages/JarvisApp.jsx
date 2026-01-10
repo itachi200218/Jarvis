@@ -141,13 +141,13 @@ useEffect(() => {
   // =========================
   // BACKEND CALL
   // =========================
-  async function sendCommand(command) {
+async function sendCommand(command) {
   if (!command || !command.trim()) return;
 
   const token = sessionStorage.getItem("jarvis_token");
   const isGuest = !token;
 
-  // 🔒 Guest restriction
+  // 🔒 Guest restriction (system commands only)
   const isSystemCommand = fuse.search(command.toLowerCase()).length > 0;
   if (isGuest && isSystemCommand) {
     const denyText =
@@ -161,13 +161,16 @@ useEffect(() => {
 
     setShowRestriction(true);
     setTimeout(() => setShowRestriction(false), 3000);
+
+    // 🔥 IMPORTANT: reset status after showing restriction
+    setStatus("Awaiting command");
     return;
   }
 
   try {
-    // 🔥 ENSURE CHAT EXISTS
     let chatId = sessionStorage.getItem("active_chat_id");
 
+    // 🔥 Logged-in user → ensure chat exists
     if (token && !chatId) {
       const chatRes = await fetch(
         "http://127.0.0.1:8000/auth/new-chat",
@@ -186,10 +189,16 @@ useEffect(() => {
       }
     }
 
-    // ❌ still no chat → do nothing
-    if (!chatId) return;
+    // 🔥 FIX: Guest DOES NOT need chat_id
+    if (!token) {
+      chatId = null;
+    } else if (!chatId) {
+      // logged-in user but still no chat → stop safely
+      setStatus("Awaiting command");
+      return;
+    }
 
-    // ✅ SEND COMMAND WITH chat_id
+    // ✅ SEND COMMAND
     const res = await fetch(API_URL, {
       method: "POST",
       headers: {
@@ -198,7 +207,7 @@ useEffect(() => {
       },
       body: JSON.stringify({
         command: command.trim(),
-        chat_id: chatId, // 🔥 THIS WAS MISSING
+        ...(token && { chat_id: chatId }), // only attach for users
       }),
     });
 
@@ -211,9 +220,12 @@ useEffect(() => {
     const data = await res.json();
     setStatus("Responding…");
     typeJarvisReply(data.reply);
+
   } catch (err) {
     console.error(err);
     typeJarvisReply("Something went wrong.");
+  } finally {
+    // 🔥 THIS LINE FIXES THE STUCK "Processing…" ISSUE
     setStatus("Awaiting command");
   }
 }

@@ -59,6 +59,7 @@ def start_new_conversation(user_id: str):
 def add_message(chat_id: str, user_id: str, role: str, text: str):
     chats = load(user_id)
 
+    # Try to find existing chat
     for convo in chats:
         if convo["id"] == chat_id:
             convo["messages"].append({
@@ -67,6 +68,24 @@ def add_message(chat_id: str, user_id: str, role: str, text: str):
                 "time": datetime.utcnow().isoformat()
             })
             save(user_id, chats)
-            return
+            return chat_id
 
-    print("⚠️ Chat ID not found:", chat_id)
+    # 🔥 CHAT NOT FOUND → CREATE NEW ONE
+    print("⚠️ Chat ID not found, creating new chat")
+
+    new_convo = {
+        "id": str(uuid4()),
+        "started_at": datetime.utcnow().isoformat(),
+        "messages": [
+            {
+                "role": role,
+                "text": text,
+                "time": datetime.utcnow().isoformat()
+            }
+        ]
+    }
+
+    chats.append(new_convo)
+    save(user_id, chats)
+
+    return new_convo["id"]

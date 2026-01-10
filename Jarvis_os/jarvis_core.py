@@ -267,9 +267,10 @@ def handle_command(command, user_role="guest", user_name=None, chat_id=None):
         intent, confidence = find_intent(raw)
 
         # ==============================
-        # 🔐 GUEST RESTRICTION
+        # 🔐 GUEST RESTRICTION (🔥 FIXED 🔥)
+        # Guests are blocked ONLY for system commands
         # ==============================
-        if user_role == "guest" and intent not in GUEST_ALLOWED_INTENTS:
+        if user_role == "guest" and intent in SYSTEM_INTENTS:
             response = "Guest access limited. Please sign in."
 
         # ==============================
@@ -310,7 +311,7 @@ def handle_command(command, user_role="guest", user_name=None, chat_id=None):
             response = current_date()
 
         # ==============================
-        # 🤖 AI FALLBACK
+        # 🤖 AI FALLBACK (WORKS FOR GUEST + USER)
         # ==============================
         else:
             response = get_ai_response(command)
@@ -318,7 +319,7 @@ def handle_command(command, user_role="guest", user_name=None, chat_id=None):
             confidence = 0
 
     # ==============================
-    # 💾 CHAT HISTORY (ONCE ONLY ✅)
+    # 💾 CHAT HISTORY (ONLY LOGGED-IN USERS)
     # ==============================
     if user_role == "user" and user_name and chat_id:
         add_message(chat_id, user_name, "user", command)

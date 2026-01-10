@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getChatHistory } from "../api/historyApi";
 
 export default function ChatHistory() {
   const [history, setHistory] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation(); // 🔥 detect route changes
 
   useEffect(() => {
     getChatHistory().then((data) => setHistory(data || []));
-  }, []);
+  }, [location.pathname]); // 🔥 re-fetch on chat change
 
   return (
     <div className="history">
@@ -25,7 +26,7 @@ export default function ChatHistory() {
           <div
             key={chat.id}
             className="history-item clickable"
-            onClick={() => navigate(`/chat/${chat.id}`)} // ✅ ONLY THIS
+            onClick={() => navigate(`/chat/${chat.id}`)}
           >
             <div className="title">{firstUserMsg.text}</div>
             <div className="time">

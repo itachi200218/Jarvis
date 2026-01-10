@@ -11,8 +11,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from jarvis_core import handle_command, speak_async
+
 from auth.router import router as auth_router
 from auth.historyrouter import router as history_router
+from chat.chatrouter import router as chat_router   # ✅ ADD THIS
 
 # ==============================
 # LOAD ENV
@@ -34,16 +36,22 @@ app = FastAPI(title="Jarvis API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # OK for dev
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ==============================
 # ROUTERS
+# ==============================
 app.include_router(auth_router)
 app.include_router(history_router)
+app.include_router(chat_router)   # ✅ REQUIRED
 
+# ==============================
+# STATIC FILES
+# ==============================
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ==============================
@@ -61,7 +69,7 @@ def startup_event():
 # ==============================
 class CommandRequest(BaseModel):
     command: str
-    chat_id: str | None = None   # 🔥 REQUIRED
+    chat_id: str | None = None
 
 # ==============================
 # ROUTES
@@ -96,11 +104,12 @@ def execute_command(
         except jwt.InvalidTokenError:
             pass
 
+    # ⚠️ This does NOT use new chat logic
     return handle_command(
         command=req.command,
         user_role=user_role,
         user_name=user_name,
-        chat_id=req.chat_id     # 🔥 PASS IT
+        chat_id=req.chat_id
     )
 
 # ==============================

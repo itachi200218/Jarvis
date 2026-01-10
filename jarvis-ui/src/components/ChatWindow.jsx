@@ -1,7 +1,7 @@
 import "../styles/ChatPage.css";
 
 export default function ChatWindow({ conversation }) {
-  if (!conversation) {
+  if (!conversation || !conversation.messages?.length) {
     return (
       <div className="chat empty">
         👋 Start a new conversation or click history
@@ -11,16 +11,20 @@ export default function ChatWindow({ conversation }) {
 
   return (
     <div className="chat">
-      {conversation.messages.map((msg, i) => (
-        <div key={i} className={`msg ${msg.role}`}>
-          <div className="msg-text">{msg.text}</div>
-          {msg.time && (
+      {conversation.messages.map((msg, i) => {
+        const time = msg.time
+          ? new Date(msg.time)
+          : new Date(); // 🔥 fallback for live messages
+
+        return (
+          <div key={i} className={`msg ${msg.role}`}>
+            <div className="msg-text">{msg.text}</div>
             <div className="msg-time">
-              {new Date(msg.time).toLocaleTimeString()}
+              {time.toLocaleTimeString()}
             </div>
-          )}
-        </div>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

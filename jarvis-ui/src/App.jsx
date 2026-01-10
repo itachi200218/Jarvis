@@ -9,13 +9,15 @@ import ChatDetail from "./pages/ChatDetail";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<JarvisApp />} />
-      <Route path="/auth" element={<Login />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/chat" element={<ChatPage />} />
-      <Route path="/chat/:chatId" element={<ChatDetail />} />
-    </Routes>
+   <Routes>
+  <Route path="/" element={<JarvisApp />} />
+  <Route path="/auth" element={<Login />} />
+  <Route path="/login" element={<Login />} /> {/* alias */}
+  <Route path="/profile" element={<Profile />} />
+  <Route path="/chat" element={<ChatPage />} />
+  <Route path="/chat/:chatId" element={<ChatDetail />} />
+</Routes>
+
   );
 }
 

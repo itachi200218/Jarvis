@@ -10,17 +10,18 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔄 Refresh user based on TOKEN (NOT DB ROLE)
+  // ==============================
+  // 🔄 REFRESH USER FROM TOKEN
+  // ==============================
   const refreshUser = async () => {
     const token = sessionStorage.getItem("jarvis_token");
 
-    // ❌ No token → GUEST
+    // ❌ NO TOKEN → LOGGED OUT
     if (!token) {
       setUser(null);
       return;
     }
 
-    // ✅ Token exists → USER
     try {
       const profile = await getMyProfile();
 
@@ -29,7 +30,7 @@ export function AuthProvider({ children }) {
         role: "user", // 🔥 FORCE USER ROLE (your rule)
       });
     } catch (err) {
-      // Even if profile API fails, token = logged in
+      // Even if API fails → still logged in
       setUser({
         name: "User",
         role: "user",
@@ -37,22 +38,59 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // 🚪 LOGOUT
+  // ==============================
+  // 🚪 LOGOUT (CRITICAL FIX)
+  // ==============================
   const logout = () => {
+    // 🔥 REMOVE TOKEN
     sessionStorage.removeItem("jarvis_token");
+
+    // 🔥 CLEAR ANY USER-SCOPED DATA
+    sessionStorage.removeItem("active_chat_id");
+
+    // 🔥 FORCE FULL USER RESET
     setUser(null);
   };
 
+  // ==============================
   // 🔁 INIT ON APP LOAD
+  // ==============================
   useEffect(() => {
-    async function init() {
+    const init = async () => {
       try {
         await refreshUser();
       } finally {
         setLoading(false);
       }
-    }
+    };
     init();
+  }, []);
+
+  // ==============================
+  // 🔁 REACT TO TOKEN CHANGE (SAME TAB FIX)
+  // ==============================
+  useEffect(() => {
+    const originalSetItem = sessionStorage.setItem;
+    const originalRemoveItem = sessionStorage.removeItem;
+
+    sessionStorage.setItem = function (key, value) {
+      originalSetItem.apply(this, arguments);
+      if (key === "jarvis_token") {
+        refreshUser();
+      }
+    };
+
+    sessionStorage.removeItem = function (key) {
+      originalRemoveItem.apply(this, arguments);
+      if (key === "jarvis_token") {
+        setUser(null);
+      }
+    };
+
+    return () => {
+      sessionStorage.setItem = originalSetItem;
+      sessionStorage.removeItem = originalRemoveItem;
+    };
   }, []);
 
   return (

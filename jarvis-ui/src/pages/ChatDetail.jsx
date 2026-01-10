@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getChatHistory } from "../api/historyApi";
 import JarvisScene from "../3dModel/JarvisScene";
@@ -6,14 +6,23 @@ import JarvisScene from "../3dModel/JarvisScene";
 export default function ChatDetail() {
   const { chatId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [chat, setChat] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
+
     getChatHistory().then((data) => {
       const found = data.find((c) => c.id === chatId);
       setChat(found || null);
+      setLoading(false);
     });
-  }, [chatId]);
+  }, [chatId, location.pathname]); // 🔥 refresh when URL changes
+
+  if (loading) {
+    return <div>Loading chat...</div>;
+  }
 
   if (!chat) {
     return <div>Chat not found</div>;
@@ -45,12 +54,18 @@ export default function ChatDetail() {
           <div className="hud-title">J.A.R.V.I.S</div>
         </div>
 
-        {chat.messages.map((msg, i) => (
-          <div key={i} className={`command-box ${msg.role}`}>
-            <span className="label">{msg.role.toUpperCase()}</span>
-            <span className="text">{msg.text}</span>
+        {chat.messages.length === 0 ? (
+          <div className="chat empty">
+            No messages in this conversation yet.
           </div>
-        ))}
+        ) : (
+          chat.messages.map((msg, i) => (
+            <div key={i} className={`command-box ${msg.role}`}>
+              <span className="label">{msg.role.toUpperCase()}</span>
+              <span className="text">{msg.text}</span>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
