@@ -1,0 +1,317 @@
+/* =====================================================
+   🤖 J.A.R.V.I.S — HUD SYNCED WITH FIRE CORE
+   ===================================================== */
+
+.chat-drawer {
+  position: fixed;
+  top: 140px;
+  right: 24px;
+  width: 340px;
+  height: 420px;
+
+  background: rgba(8, 12, 18, 0.35);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+
+  border-radius: 18px;
+  overflow: hidden;
+  z-index: 999;
+
+  color: #eef6ff;
+  font-family: "Orbitron", "Rajdhani", monospace;
+
+  animation: drawerIn 0.4s ease-out forwards;
+}
+
+/* ======================
+   FIRE-SYNC ENERGY BORDER
+   ====================== */
+.chat-drawer::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+
+  background: linear-gradient(
+    120deg,
+    rgba(34, 211, 238, 0.8),  /* cyan */
+    rgba(96, 165, 250, 0.8),  /* blue */
+    rgba(167, 139, 250, 0.75),/* purple */
+    rgba(239, 68, 68, 0.65),  /* red */
+    rgba(249, 115, 22, 0.7),  /* orange */
+    rgba(34, 211, 238, 0.8)
+  );
+
+  background-size: 300% 300%;
+  animation: fireFlow 14s ease-in-out infinite;
+
+  filter: blur(7px);
+  opacity: 0.75;
+  z-index: -2;
+}
+
+/* ======================
+   CORE HUD GLOW
+   ====================== */
+.chat-drawer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(200, 220, 255, 0.025),
+      rgba(200, 220, 255, 0.025) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    radial-gradient(
+      circle at top,
+      rgba(96, 165, 250, 0.18),
+      transparent 65%
+    );
+
+  animation: hudPulse 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ======================
+   SCAN LINE (FIRE-CYAN)
+   ====================== */
+.chat-drawer .scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(34, 211, 238, 0.9),
+    transparent
+  );
+
+  animation: scanMove 3.5s linear infinite;
+  opacity: 0.65;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
+}
+
+/* ======================
+   HUD CORNERS (FIRE SYNC)
+   ====================== */
+.chat-drawer .hud-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(96, 165, 250, 0.75);
+
+  animation: cornerFire 8s ease-in-out infinite;
+}
+
+.chat-drawer .tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+.chat-drawer .tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+.chat-drawer .bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+.chat-drawer .br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+/* ======================
+   HOVER — FIRE BOOST
+   ====================== */
+.chat-drawer:hover {
+  box-shadow:
+    0 0 28px rgba(96, 165, 250, 0.45),
+    inset 0 0 22px rgba(34, 211, 238, 0.25);
+}
+
+/* ======================
+   ANIMATIONS
+   ====================== */
+@keyframes fireFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes hudPulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.75; }
+}
+
+@keyframes scanMove {
+  0% { top: 0%; }
+  100% { top: 100%; }
+}
+
+@keyframes cornerFire {
+  0%   { border-color: #22d3ee; }
+  25%  { border-color: #60a5fa; }
+  50%  { border-color: #a78bfa; }
+  75%  { border-color: #ef4444; }
+  100% { border-color: #f97316; }
+}
+
+@keyframes drawerIn {
+  from {
+    transform: translateX(50px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ======================
+   SCROLLBAR — FIRE THEME
+   ====================== */
+.chat-drawer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-drawer::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    #22d3ee,
+    #60a5fa,
+    #a78bfa,
+    #ef4444,
+    #f97316
+  );
+  border-radius: 10px;
+}
+
+.chat-drawer::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* ===================================================== */
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* MAIN CLICKABLE AREA */
+.history-main {
+  flex: 1;
+  cursor: pointer;
+}
+
+/* =========================
+   🗑️ JARVIS MICRO DELETE BTN
+   ========================= */
+.delete-btn {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 90, 90, 0.06);
+  border: 1px solid rgba(255, 120, 120, 0.28);
+  border-radius: 4px;
+
+  color: rgba(255, 120, 120, 0.7);
+  font-size: 11px;
+  line-height: 1;
+
+  cursor: pointer;
+  transition: 
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+/* HOVER — HUD WARNING STATE */
+.delete-btn:hover {
+  color: #ff5a5a;
+  background: rgba(255, 90, 90, 0.16);
+  box-shadow:
+    0 0 6px rgba(255, 90, 90, 0.55),
+    inset 0 0 4px rgba(255, 120, 120, 0.35);
+  transform: scale(1.08);
+}
+
+/* ACTIVE — CONFIRM PRESS */
+.delete-btn:active {
+  transform: scale(0.95);
+  box-shadow:
+    0 0 4px rgba(255, 80, 80, 0.45),
+    inset 0 0 6px rgba(255, 120, 120, 0.45);
+}
+
+/* OPTIONAL: FADE BUTTON UNTIL HOVER */
+.history-item .delete-btn {
+  opacity: 0.75;
+}
+
+.history-item:hover .delete-btn {
+  opacity: 1;
+}
+/* =========================
+   🤖 JARVIS DELETE MODAL
+   ========================= */
+.jarvis-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jarvis-modal {
+  width: 320px;
+  padding: 18px 20px;
+
+  background: rgba(6, 14, 22, 0.92);
+  border: 1px solid rgba(120, 200, 200, 0.35);
+  border-radius: 14px;
+
+  box-shadow:
+    0 0 30px rgba(120, 200, 200, 0.35),
+    inset 0 0 18px rgba(120, 200, 200, 0.18);
+
+  font-family: "Orbitron", monospace;
+  color: #dfeff0;
+
+  animation: jarvisPop 0.25s ease-out;
+}
+
+@keyframes jarvisPop {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.jarvis-modal-title {
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: #ff9a9a;
+  margin-bottom: 10px;
+}
+
+.jarvis-modal-text {
+  font-size: 12px;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+.jarvis-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}

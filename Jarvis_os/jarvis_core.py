@@ -77,6 +77,11 @@ SYSTEM_INTENTS = {
     "open_explorer",
     "open_settings",
 }
+# ==============================
+# 🧠 CHEAP REASONING KEYWORDS
+# ==============================
+WEATHER_KEYWORDS = {"hot", "cold", "temperature", "weather"}
+CPU_KEYWORDS = {"slow", "lag", "loud", "fan", "noise", "hang", "performance"}
 
 # ==============================
 # SPEECH (WINDOWS)
@@ -222,6 +227,29 @@ def is_identity_query(text: str) -> bool:
             return True
 
     return False
+def cheap_reasoning(raw: str):
+    """
+    Zero-cost multi-signal reasoning (NO AI)
+    """
+    response_parts = []
+
+    # 🌡 Weather reasoning
+    if any(word in raw for word in WEATHER_KEYWORDS):
+        try:
+            location = get_current_location()
+            weather = get_weather(location)
+            response_parts.append(weather)
+        except:
+            pass
+
+    # 🧠 System / CPU reasoning
+    if any(word in raw for word in CPU_KEYWORDS):
+        response_parts.append(cpu_usage())
+
+    if response_parts:
+        return " ".join(response_parts)
+
+    return None
 
 # ==============================
 # 🔥 SINGLE COMMAND ROUTER
@@ -261,10 +289,22 @@ def handle_command(command, user_role="guest", user_name=None, chat_id=None):
         confidence = 0
 
     else:
-        # ==============================
-        # INTENT DETECTION
-        # ==============================
-        intent, confidence = find_intent(raw)
+    # ==============================
+    # 🧠 CHEAP CONTEXT REASONING (RUN FIRST)
+    # ==============================
+        smart_reply = cheap_reasoning(raw)
+
+        if smart_reply:
+            response = smart_reply
+            intent = "context_reasoning"
+            confidence = 90
+
+        else:
+            # ==============================
+            # INTENT DETECTION
+            # ==============================
+            intent, confidence = find_intent(raw)
+
 
         # ==============================
         # 🔐 GUEST RESTRICTION (🔥 FIXED 🔥)

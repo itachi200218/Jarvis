@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "../App.css";
+import "../styles/chat-drawer.css";
 import JarvisScene from "../3dModel/JarvisScene";
 import { useAuth } from "../context/authcontext_temp.jsx";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +22,7 @@ function JarvisApp({ openLogin }) {
   const recognitionRef = useRef(null);
   const typingIntervalRef = useRef(null);
   const jarvisTextRef = useRef(null);
+const historyPanelRef = useRef(null); // 👈 ADD THIS
 
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState("Awaiting command");
@@ -137,6 +139,26 @@ useEffect(() => {
     }
   });
 }, [activeChatId]);
+// =========================
+// 🔥 CLICK OUTSIDE TO CLOSE CHAT HISTORY
+// =========================
+useEffect(() => {
+  function handleClickOutside(event) {
+    if (
+      showHistory &&
+      historyPanelRef.current &&
+      !historyPanelRef.current.contains(event.target)
+    ) {
+      setShowHistory(false);
+    }
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, [showHistory]);
 
   // =========================
   // BACKEND CALL
@@ -295,8 +317,15 @@ return (
     )}
 
     {/* 🔥 CHAT HISTORY DRAWER (MUST BE HERE) */}
- {showHistory && (
-  <div className="chat-drawer">
+{showHistory && (
+  <div className="chat-drawer" ref={historyPanelRef}>
+    <div className="scan-line" />
+
+    <div className="hud-corner tl" />
+    <div className="hud-corner tr" />
+    <div className="hud-corner bl" />
+    <div className="hud-corner br" />
+
     <ChatHistory
       onSelectChat={(chatId) => {
         setActiveChatId(chatId);
@@ -305,6 +334,7 @@ return (
     />
   </div>
 )}
+
 
     {/* MAIN HUD FRAME */}
     <div className="hud-frame">

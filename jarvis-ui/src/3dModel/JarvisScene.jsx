@@ -13,19 +13,19 @@ function FireAura({ scale = 2 }) {
     new THREE.Color("#22d3ee"), // cyan
     new THREE.Color("#60a5fa"), // blue
     new THREE.Color("#a78bfa"), // purple
-    new THREE.Color("#ef4444"), // 🔥 red
+    new THREE.Color("#ef4444"), // red
     new THREE.Color("#f97316"), // orange
   ];
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
 
-    // 🔁 rotation + unstable motion
+    // rotation + unstable motion
     ref.current.rotation.z += 0.002;
     ref.current.rotation.x = Math.sin(t * 0.6) * 0.08;
     ref.current.rotation.y = Math.cos(t * 0.4) * 0.08;
 
-    // 💓 breathing
+    // breathing
     const pulse =
       1 +
       Math.sin(t * 2.5) * 0.05 +
@@ -33,16 +33,14 @@ function FireAura({ scale = 2 }) {
 
     ref.current.scale.setScalar(scale * pulse);
 
-    // 🎨 COLOR CYCLE (EVERY 5 SECONDS)
-    const index = Math.floor(t / 5) % colors.length;
+    // 🎨 COLOR CYCLE (EVERY 3 SECONDS)
+    const index = Math.floor(t / 3) % colors.length;
     const nextIndex = (index + 1) % colors.length;
+    const blend = (t % 3) / 3;
 
-    const blend = (t % 5) / 5; // smooth blend 0 → 1
-
-    const currentColor = colors[index].clone().lerp(
-      colors[nextIndex],
-      blend
-    );
+    const currentColor = colors[index]
+      .clone()
+      .lerp(colors[nextIndex], blend);
 
     materialRef.current.uniforms.color.value.copy(currentColor);
     materialRef.current.uniforms.intensity.value =
